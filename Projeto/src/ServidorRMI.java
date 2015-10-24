@@ -17,10 +17,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 	
-	public static ArrayList <Utilizador> listaUtilizadores = new ArrayList <Utilizador>();
-	public static ArrayList <Projeto> listaProjetos = new ArrayList <Projeto>();
 	AtomicInteger contadorIDProjeto = new AtomicInteger(0);
 	AtomicInteger contadorIDRecompensa = new AtomicInteger(0);
+	BaseDeDados bd = new BaseDeDados();
 	
 	protected ServidorRMI() throws RemoteException {
 		super();
@@ -32,7 +31,6 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 		System.setProperty("java.security.policy","file:///urs/lib/jvm/java-7-openjdk-i386/jre/lib/security/java.policy");
         
 		try {
-			
 			ServidorRMI servRMI= new ServidorRMI();
 			// TODO
 			java.rmi.registry.LocateRegistry.createRegistry(7000); 
@@ -60,7 +58,7 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 	/* inicializa os dados iniciais */
 	synchronized public void iniciaDados(ServidorRMI servRMI) throws IOException {
 		Utilizador user1 = new Utilizador("Primeiro", "passe1", 80);
-		user1.id=listaUtilizadores.size()-1;
+		user1.id=bd.listaUtilizadores.size()-1;
 		
 		Calendar dataInicial = new GregorianCalendar(2012, Calendar.MAY, 17);
 		Calendar dataFinal = new GregorianCalendar(2015, Calendar.NOVEMBER, 18);
@@ -72,8 +70,8 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 		proj1.addRecompensa(proj1, rec);
 		user1.listaIDsProjeto.add(idP);
 		
-		listaProjetos.add(proj1);
-		listaUtilizadores.add(user1);
+		bd.listaProjetos.add(proj1);
+		bd.listaUtilizadores.add(user1);
 		servRMI.guardaFicheiro();
 	}
 
@@ -81,10 +79,10 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 	public String listaProjetosActuais() {
 		int i;
 		String str="";
-		for (i=0;i<listaProjetos.size();i++) {
-			if (listaProjetos.get(i).verificaValidade())
-				str= str.concat(listaProjetos.get(i).imprime());
-				str = str.concat(listaRecompensas(listaProjetos.get(i).id));
+		for (i=0;i<bd.listaProjetos.size();i++) {
+			if (bd.listaProjetos.get(i).verificaValidade())
+				str= str.concat(bd.listaProjetos.get(i).imprime());
+				str = str.concat(listaRecompensas(bd.listaProjetos.get(i).id));
 		}
 		return str;
 	}
@@ -92,9 +90,9 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 	public String listaProjetosAntigos() {
 		int i;
 		String str="";
-		for (i=0;i<listaProjetos.size();i++) {
-			if (!listaProjetos.get(i).verificaValidade())
-				str= str.concat(listaProjetos.get(i).imprime());
+		for (i=0;i<bd.listaProjetos.size();i++) {
+			if (!bd.listaProjetos.get(i).verificaValidade())
+				str= str.concat(bd.listaProjetos.get(i).imprime());
 		}
 		return str;
 	}
@@ -103,19 +101,19 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 	/* adiciona um utilizador e devolve o seu ID */
 	synchronized public int registaConta(String nomeUser, String password) {
 		float saldoDefault=100;
-		int userID = listaUtilizadores.size()-1;
+		int userID = bd.listaUtilizadores.size()-1;
 		Utilizador user = new Utilizador(nomeUser, password, saldoDefault);
 		user.setId(userID); // id do user é a sua posição na lista de users
 		
-		listaUtilizadores.add(user);
+		bd.listaUtilizadores.add(user);
 		return userID;
 	}
 	
 	/* verifica se o username e password são válidos */
 	public int verificaLogin(String nomeUser, String password)  {
 		int i;
-		for (i=0;i<listaUtilizadores.size();i++) {
-			if ((listaUtilizadores.get(i).nome.compareToIgnoreCase(nomeUser) == 0)&& (listaUtilizadores.get(i).password.compareToIgnoreCase(password) == 0))
+		for (i=0;i<bd.listaUtilizadores.size();i++) {
+			if ((bd.listaUtilizadores.get(i).nome.compareToIgnoreCase(nomeUser) == 0)&& (bd.listaUtilizadores.get(i).password.compareToIgnoreCase(password) == 0))
 				return i;
 		}
 		return -1;
@@ -126,11 +124,11 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 	synchronized public void carregaFicheiro() throws IOException, ClassNotFoundException {
 		FileInputStream fin = new FileInputStream("ficheiros/utilizadores.txt");
 		ObjectInputStream objin = new ObjectInputStream(fin);
-        listaUtilizadores = (ArrayList) objin.readObject();
+		bd.listaUtilizadores = (ArrayList) objin.readObject();
 		
         fin = new FileInputStream("ficheiros/projetos.txt");
         objin = new ObjectInputStream(fin);
-        listaProjetos = (ArrayList) objin.readObject();
+        bd.listaProjetos = (ArrayList) objin.readObject();
 	}
 	
 	/* guarda dados em ficheiro */
@@ -138,13 +136,13 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 		
         FileOutputStream fout = new FileOutputStream("ficheiros/projetos.txt");
         ObjectOutputStream objout = new ObjectOutputStream(fout);
-        objout.writeObject(listaProjetos); // escrever arrayList
+        objout.writeObject(bd.listaProjetos); // escrever arrayList
         objout.close();
         
         fout = new FileOutputStream("ficheiros/utilizadores.txt");
         objout = new ObjectOutputStream(fout);
 
-        objout.writeObject(listaUtilizadores);
+        objout.writeObject(bd.listaUtilizadores);
         objout.close();
 		
 	}
@@ -152,7 +150,7 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 	/* CONSULTA */
 	/* retorna o saldo */
 	public String consultarSaldo(int userID) {
-		return "Saldo: "+listaUtilizadores.get(userID).getSaldo()+"\n";
+		return "Saldo: "+bd.listaUtilizadores.get(userID).getSaldo()+"\n";
 	}
 	
 	/* devolve a lista de Projetos em que o user é admin */
@@ -160,11 +158,11 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 		int i, j;
 		String str="";
 		
-		Utilizador user = listaUtilizadores.get(userID);
+		Utilizador user = bd.listaUtilizadores.get(userID);
 		for (i=0;i<user.listaIDsProjeto.size();i++) {
-			for (j=0;j<listaProjetos.size();j++) {
-				if (listaProjetos.get(j).id == user.listaIDsProjeto.get(i))
-					str = str.concat(listaProjetos.get(j).imprime());
+			for (j=0;j<bd.listaProjetos.size();j++) {
+				if (bd.listaProjetos.get(j).id == user.listaIDsProjeto.get(i))
+					str = str.concat(bd.listaProjetos.get(j).imprime());
 			}
 		}
 		return str;
@@ -174,9 +172,9 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 	public String imprimeDetalhesProjeto(int projID) {
 		int i, j;
 		String str="";
-		for (j=0;j<listaProjetos.size();j++) {
-			if (listaProjetos.get(j).id == projID)
-				str = str.concat(listaProjetos.get(j).imprimeDetalhes(listaProjetos.get(j)));
+		for (j=0;j<bd.listaProjetos.size();j++) {
+			if (bd.listaProjetos.get(j).id == projID)
+				str = str.concat(bd.listaProjetos.get(j).imprimeDetalhes(bd.listaProjetos.get(j)));
 		}
 		
 		return str;
@@ -185,7 +183,7 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 	// TODO: nao resulta para 2 doações porquê? - resulta sim!
 	public String imprimeDoacoesUser(int userID) {
 		String str="";
-		Utilizador user = listaUtilizadores.get(userID); 
+		Utilizador user = bd.listaUtilizadores.get(userID); 
 		int idProjeto;
 		float doacao;
 		Set<Entry<Integer, Float>> set = user.listaDoacoesUser.entrySet();
@@ -211,8 +209,8 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 		String str="";
 		
 		// cada projeto tem obrigatoriamente de escolher uma recompensa
-		for (i=0;i<listaUtilizadores.get(userID).listaIDsProjeto.size();i++) {
-			proj = procuraProjetoID(listaUtilizadores.get(userID).listaIDsProjeto.get(i));
+		for (i=0;i<bd.listaUtilizadores.get(userID).listaIDsProjeto.size();i++) {
+			proj = procuraProjetoID(bd.listaUtilizadores.get(userID).listaIDsProjeto.get(i));
 			System.out.println("O projeto e "+proj.nome);
 			str = procuraRecompensa(proj, userID );
 			
@@ -224,9 +222,9 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 	public int procuraProjeto(String nome) {
 		int i;
 		//System.out.println("O tamanho da lista de Projetos e "+listaProjetos.size());
-		for (i=0;i<listaProjetos.size();i++) {
-			if (listaProjetos.get(i).nome.compareToIgnoreCase(nome)==0) {
-				return listaProjetos.get(i).id;
+		for (i=0;i<bd.listaProjetos.size();i++) {
+			if (bd.listaProjetos.get(i).nome.compareToIgnoreCase(nome)==0) {
+				return bd.listaProjetos.get(i).id;
 			}
 		}
 		return -1;
@@ -236,9 +234,9 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 	public Projeto procuraProjetoID(int projID) {
 		int i;
 		//System.out.println("O tamanho da lista de Projetos e "+listaProjetos.size());
-		for (i=0;i<listaProjetos.size();i++) {
-			if (listaProjetos.get(i).id == projID) {
-				return listaProjetos.get(i);
+		for (i=0;i<bd.listaProjetos.size();i++) {
+			if (bd.listaProjetos.get(i).id == projID) {
+				return bd.listaProjetos.get(i);
 			}
 		}
 		return null;
@@ -249,7 +247,7 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 		int i, j;
 		String str="";
 		
-		Utilizador user = listaUtilizadores.get(userID);
+		Utilizador user = bd.listaUtilizadores.get(userID);
 		for (i=0;i<proj.listaRecompensas.size();i++) {
 			for (j=0;j<user.listaIDsRecompensas.size();j++) {
 				if (proj.listaRecompensas.get(i).id == user.listaIDsRecompensas.get(j)) {
@@ -276,16 +274,18 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 	/* criar um projeto - check! */
 	synchronized public void criaProjeto(int userID, String nome, float valor_objetivo, Calendar dataInicial, Calendar dataFinal) {
 		int id = contadorIDProjeto.getAndIncrement();
-		listaUtilizadores.get(userID).listaIDsProjeto.add(id);
-		Projeto proj = new Projeto(listaUtilizadores.get(userID), nome, valor_objetivo, id, dataInicial, dataFinal);
-		listaProjetos.add(proj);
+		bd.listaUtilizadores.get(userID).listaIDsProjeto.add(id);
+		Projeto proj = new Projeto(bd.listaUtilizadores.get(userID), nome, valor_objetivo, id, dataInicial, dataFinal);
+		bd.listaProjetos.add(proj);
 	}
 	
 	synchronized public void eliminaProjeto(int userID, int projID) {
 		
-		Utilizador user = listaUtilizadores.get(userID);
+		//Utilizador user = bd.listaUtilizadores.get(userID);
+		//System.out.println("O projeto primeiro chama-se "+bd.listaProjetos.get(0).nome);
 		
-		user.listaIDsProjeto.remove(projID);
+		bd.listaProjetos.remove(bd.listaProjetos.get(0));
+		bd.listaUtilizadores.get(userID).listaIDsProjeto.remove(projID);
 		Projeto proj = procuraProjetoID(projID);
 		
 		// devolve dinheiro aos users
@@ -312,8 +312,8 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 			Map.Entry <Integer, Float> mentry = (Entry<Integer, Float>) i.next();
 			userID = (int) mentry.getKey();
 			doacao = (float) mentry.getValue();
-			saldo = listaUtilizadores.get(userID).getSaldo();
-			listaUtilizadores.get(userID).setSaldo(saldo+doacao);
+			saldo = bd.listaUtilizadores.get(userID).getSaldo();
+			bd.listaUtilizadores.get(userID).setSaldo(saldo+doacao);
 			
 			retiraRecompensa(userID, proj);
 		}
@@ -324,7 +324,7 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 		
 		int i, j;
 		
-		Utilizador user = listaUtilizadores.get(userID);
+		Utilizador user = bd.listaUtilizadores.get(userID);
 		for (i=0;i<proj.listaRecompensas.size();i++) {
 			for (j=0;j<user.listaIDsRecompensas.size();j++) {
 				if (proj.listaRecompensas.get(i).id == user.listaIDsRecompensas.get(j)) {
@@ -336,7 +336,7 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 	}
 	
 	synchronized public void doarDinheiro(int userID, int projID, float dinheiro) {
-		Utilizador user = listaUtilizadores.get(userID);
+		Utilizador user = bd.listaUtilizadores.get(userID);
 		Projeto proj = procuraProjetoID(projID);
 		
 		float saldo = user.getSaldo();
@@ -367,7 +367,7 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 		Recompensa rec = proj.listaRecompensas.get(indexRecompensa);
 		//System.out.println("Dinheiro: "+dinheiro+ " e valor da recomp: " + rec.valor);
 		if (dinheiro >= rec.valor) {
-			listaUtilizadores.get(userID).listaIDsRecompensas.add(rec.id);
+			bd.listaUtilizadores.get(userID).listaIDsRecompensas.add(rec.id);
 			return true;
 		}
 		return false;
@@ -385,8 +385,8 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 	/* AUXILIARES */
 	public int verificaAdministrador(int userID, int projID) {
 		int i=0;
-		for (i=0;i<listaUtilizadores.get(userID).listaIDsProjeto.size();i++) {
-			if (projID == listaUtilizadores.get(userID).listaIDsProjeto.get(i))
+		for (i=0;i<bd.listaUtilizadores.get(userID).listaIDsProjeto.size();i++) {
+			if (projID == bd.listaUtilizadores.get(userID).listaIDsProjeto.get(i))
 				return 1;
 		}
 		return 0;

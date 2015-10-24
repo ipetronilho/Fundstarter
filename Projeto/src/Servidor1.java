@@ -47,8 +47,8 @@ public class Servidor1{
 		}
 }
 		
-    
-    private static String tentaLigacao(ConexaoUDP c_udp) { //retorna SIM ou NAO caso seja possível ligar-se ao servidor
+	//retorna SIM ou NAO caso seja possível ligar-se ao servidor
+    private static String tentaLigacao(ConexaoUDP c_udp) { 
         String st;
         if (Primario == true) { //liga-se sempre ao servidor primário
             st = "SIM";

@@ -12,19 +12,21 @@ import java.util.logging.Logger;
 
 public class Cliente {
 
+	
     static int TIMEOUT = 600000;
     static boolean DEBUG = true;
     static int tentativas = 3, falhou = 10;
-    static String serverAddress = "localhost";
+   // static String serverAddress = "169.254.36.100";
     // tem de ter 2 ips e dois portos distintos
+    static String serverAddress = "localhost";
     public static void main(String args[]) throws InterruptedException {
 
         // args[0] <- hostname of destination
-        /*if (args.length == 0) {
+        if (args.length == 0) {
          System.out.println("java TCPClient hostname");
          System.exit(0);
          }
-         */
+         
         
 /*
         InputStream inconfig = null;
@@ -52,22 +54,23 @@ public class Cliente {
         String msg = "";
         
 
-        while (true) {
-
+        while (true) { // alterna constantemente entre servidores para se ligar
+        	
             for (i = 0; i < 2; i++) {
 
                 if (DEBUG == true) {
                     System.out.println("Vou ligar-me ao servidor: " + (i + 1));
                 }
                 
-                msg = coneccaoServidor(serverAddress, serversockets[i]);
+                msg = conexaoServidor(serverAddress, serversockets[i]);
 
                 if (msg.compareToIgnoreCase("TROCA") != 0 && msg.length() > 0) {
-                    for (j = 0; j < tentativas; j++) {
+                    for (j = 0; j < tentativas; j++) { // tenta 3 vezes
                         if (msg.compareToIgnoreCase("TROCA") != 0 && msg.length() > 0) {
                             Thread.sleep(1000); // espera 1 segundo e volta a tentar
-                            msg = coneccaoServidor(serverAddress, serversockets[i]);
-                        } else {
+                            msg = conexaoServidor(serverAddress, serversockets[i]);
+                        } 
+                        else {
                             j = tentativas;
                         }
                     }
@@ -84,7 +87,8 @@ public class Cliente {
 
     }
 
-    public static String coneccaoServidor(String serverAddress, int serversocket) { // retorna "" se der bem e "TROCA" se der mal
+    // retorna "" se conseguir ligar-se e "TROCA" se for preciso tentar outra vez
+    public static String conexaoServidor(String serverAddress, int serversocket) { 
         String str = "";
         Socket s = null;
         String data;
@@ -92,7 +96,7 @@ public class Cliente {
         try {
             System.out.println("\nHost é '" + serverAddress + "' e socket" + serversocket);
             try {
-                s = new Socket(serverAddress, serversocket);
+                s = new Socket(serverAddress, serversocket);	// conectou-se ao servidor
             } catch (SocketException e) { // os dois servidores estão offline
                 return "TROCA";
             }
@@ -100,7 +104,7 @@ public class Cliente {
             DataOutputStream out = new DataOutputStream(s.getOutputStream());
 
             out.writeUTF("PEDIDO");
-            s.setSoTimeout(TIMEOUT);
+            s.setSoTimeout(TIMEOUT);	// tempo limitado
             data = in.readUTF();
 
             if (data.compareToIgnoreCase("SIM") == 0) { //pedido aceite
@@ -112,7 +116,7 @@ public class Cliente {
                 String texto = "";
                 InputStreamReader input = new InputStreamReader(System.in);
                 BufferedReader reader = new BufferedReader(input);
-                System.out.println("Introduza texto: ");
+                
 
                 while (true) {
                     try {
@@ -126,7 +130,8 @@ public class Cliente {
                         return "TROCA";
                     }
                 }
-            } else if (data.compareToIgnoreCase("NAO") == 0) { // não consegue ligar-se ao servidor
+            } 
+            else if (data.compareToIgnoreCase("NAO") == 0) { // não consegue ligar-se ao servidor
                 str = "TROCA";
             }
         } catch (IOException ex) {
@@ -167,7 +172,7 @@ class Receiver extends Thread {
                 break;
             } catch (Exception e) {
                 System.out.println("Sock:" + e.getMessage());
-                break;	// VGG aborta o ciclo while em caso de excepcao
+                break;	
             }
         }
         System.out.println("Fim.");

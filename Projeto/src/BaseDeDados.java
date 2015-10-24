@@ -2,27 +2,29 @@ import java.util.ArrayList;
 
 public class BaseDeDados {
 
-	public static ArrayList <Utilizador> listaUtilizadores = new ArrayList <Utilizador>();
-	public static ArrayList <Projeto> listaProjetos = new ArrayList <Projeto>();
+	public ArrayList <Utilizador> listaUtilizadores = new ArrayList <Utilizador>();
+	public ArrayList <Projeto> listaProjetos = new ArrayList <Projeto>();
 	
 	public BaseDeDados() {
 		
 	}
 
-	public static ArrayList<Utilizador> getListaUtilizadores() {
+	
+	
+	public ArrayList<Utilizador> getListaUtilizadores() {
 		return listaUtilizadores;
 	}
 
-	public static void setListaUtilizadores(ArrayList<Utilizador> listaUtilizadores) {
-		BaseDeDados.listaUtilizadores = listaUtilizadores;
+	public void setListaUtilizadores(ArrayList<Utilizador> listaUtilizadores) {
+		this.listaUtilizadores = listaUtilizadores;
 	}
 
-	public static ArrayList<Projeto> getListaProjetos() {
+	public ArrayList<Projeto> getListaProjetos() {
 		return listaProjetos;
 	}
 
-	public static void setListaProjetos(ArrayList<Projeto> listaProjetos) {
-		BaseDeDados.listaProjetos = listaProjetos;
+	public void setListaProjetos(ArrayList<Projeto> listaProjetos) {
+		this.listaProjetos = listaProjetos;
 	}
 	
 }
