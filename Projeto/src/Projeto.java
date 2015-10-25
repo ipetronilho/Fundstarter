@@ -60,7 +60,7 @@ public class Projeto implements Serializable {
 		DecimalFormat df = new DecimalFormat("#.##");
 		float valor_recolhido = getValorRecolhido();
 		percentagem = valor_recolhido/valor_objetivo*100;
-		return "Projeto: "+this.nome+"\nValor Recolhido:"+valor_recolhido+"("+df.format(percentagem)+"%)"+"\nValor objetivo: "+valor_objetivo+"\n\n";
+		return "Projeto: "+this.nome+"\nValor Recolhido:"+valor_recolhido+"("+df.format(percentagem)+"%)"+"\nValor objetivo: "+valor_objetivo+"Id: "+id+"\n\n";
 	}
 	
 	public float getValorRecolhido() {

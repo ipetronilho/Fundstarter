@@ -6,14 +6,16 @@
 
 import java.net.*;
 import java.io.*;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Properties;
+import java.util.Stack;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class Cliente {
-
 	
-    static int TIMEOUT = 600000;
+	static int TIMEOUT = 600000;
     static boolean DEBUG = true;
     static int tentativas = 3, falhou = 10;
    // static String serverAddress = "169.254.36.100";
@@ -92,6 +94,7 @@ public class Cliente {
         String str = "";
         Socket s = null;
         String data;
+        // regista as operações
 
         try {
             System.out.println("\nHost é '" + serverAddress + "' e socket" + serversocket);
@@ -149,11 +152,16 @@ public class Cliente {
         return str;
 
     }
+    
+    
 }
 
 class Receiver extends Thread {
-
+	Stack <Integer> stack = new Stack <Integer>();
     DataInputStream in;
+    
+    // dados gravados no cliente em caso de falha de rede
+    int userID;
 
     public Receiver(DataInputStream ain) {
         this.in = ain;
@@ -166,7 +174,18 @@ class Receiver extends Thread {
             try {
                 String data = in.readUTF();
                 // DISPLAY WHAT WAS READ
-                System.out.println("> " + data);
+                // acabou de fazer uma operação logo tenho de a gravar
+                /*if (data.compareToIgnoreCase("OPERACAO")==0) {
+                	System.out.println("A gravar a operacao");
+                	int opcao = Integer.parseInt(in.readUTF());
+                	stack.push(opcao);  acrescenta login à lista de operações
+                	if (opcao==1 || opcao==2) {  servidor tem de enviar o userID
+                		userID=Integer.parseInt(in.readUTF());  ver como
+                	}
+                	
+                	
+                }*/
+                	System.out.println("> " + data);
             } catch (SocketException e) {
                 System.out.print("O Socket Servidor fechou"); //Caso o socket de conecção ao cliente se fechar este imprime o erro
                 break;

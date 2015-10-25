@@ -24,6 +24,7 @@ public interface InterfaceRMI extends Remote {
 	
 	/* OPERAÇÕES DE PROJETOS */
 	public void criaProjeto(int userID, String nome, float valor_objetivo, Calendar dataInicial, Calendar dataFinal)throws RemoteException;
+	public boolean validaDoacao(int userID, float dinheiro);
 	public void doarDinheiro(int userID, int ProjID, float dinheiro) throws RemoteException;
 	public void eliminaProjeto(int userID, int projID) throws RemoteException;
 	

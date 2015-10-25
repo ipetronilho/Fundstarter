@@ -49,6 +49,30 @@ class ConexaoTCP extends Thread {
         }catch(IOException e){System.out.println("Connection:" + e.getMessage());}
     }
     
+    // push
+    /*public void informaCliente(DataOutputStream out, String opcao) {
+    	
+    	try {
+    		out.writeUTF("OPERACAO");
+			out.writeUTF(opcao);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    }*/
+    
+    public void desfazCliente(DataOutputStream out) {
+    	
+    	try {
+    		out.writeUTF("DESFAZ");
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    }
+    
+    
+    
     //=============================
     public void run() {
         String resposta;
@@ -81,23 +105,25 @@ class ConexaoTCP extends Thread {
 						intRMI = (InterfaceRMI) Naming.lookup("rmi://localhost:7000/benfica");
 						int userID=-1; // o ID do user é a posição na arrayList 
 						Utilizador user = new Utilizador(); // TODO: apagar
-			
+						
 				        	
 				            while(true){
 				                //an echo server
-				            	
 					            if (checkLogin == 0) {
 					            	/* ---- MENU ---- */
+					            	// TODO: resumeStatus() 
 					                out.writeUTF("Bem vindo! Seleccione uma opcao! 1-Login; 2-Registar; 3-Consultar dados");
-					                
 					                
 					                int i=0;
 					                String data = in.readUTF();
 					                int opcao=Integer.parseInt(data);
 					                
+					                //informaCliente(out, data);
+					                
 					                
 					                /* LOGIN */
 					                if (opcao==1) {
+					                		
 					                	out.writeUTF("--LOGIN--");
 					                	out.writeUTF("Insira nome de Utilizador");
 					                	String nomeUser = in.readUTF();
@@ -118,6 +144,7 @@ class ConexaoTCP extends Thread {
 					                
 					                /* REGISTAR */
 					                else if (opcao==2) {
+					                	
 					                	out.writeUTF("--REGISTO--");
 					                	
 					                	out.writeUTF("Insira nome de Utilizador");
@@ -133,6 +160,10 @@ class ConexaoTCP extends Thread {
 					                else if (opcao==3) {
 					                	out.writeUTF("Consultar dados...\n1-Listar Projetos Actuais\n2-Listar Projetos Antigos\n3-Consultar Detalhes de um projeto\n0-Sair");
 					                	data = in.readUTF();
+					                	
+					                	//--
+					                	////informaCliente(out, data);
+					                	
 					                	opcao=Integer.parseInt(data);
 					                	if (opcao==1) {
 					                		out.writeUTF("--PROJETOS ACTUAIS--");
@@ -152,6 +183,7 @@ class ConexaoTCP extends Thread {
 					                		resposta = intRMI.imprimeDetalhesProjeto(projID);
 					                		out.writeUTF(resposta);
 					                	}
+					                	desfazCliente(out);
 					                }
 					            }
 					                
@@ -175,6 +207,7 @@ class ConexaoTCP extends Thread {
 					            	
 					            	String data = in.readUTF();
 					            	int opcao=Integer.parseInt(data);
+					            	//informaCliente(out, data);
 					            	
 					            	if (opcao == 0) {
 					            		out.writeUTF("A sair...");
@@ -200,6 +233,8 @@ class ConexaoTCP extends Thread {
 					                	out.writeUTF("Consultar dados...\n1-Listar Projetos Actuais\n2-Listar Projetos Antigos\n3-Consultar Detalhes de um projeto\n0-Sair");
 					                	data = in.readUTF();
 					                	opcao=Integer.parseInt(data);
+					                	//informaCliente(out, data);
+					                	
 					                	if (opcao==1) {
 					                		out.writeUTF("--PROJETOS ACTUAIS--");
 					                		resposta = intRMI.listaProjetosActuais();
@@ -228,7 +263,7 @@ class ConexaoTCP extends Thread {
 					            	
 					            	
 					            	else if (opcao == 6) { // criar projeto - falta descricao
-					            		
+					            		// escrevo num ficheiro
 					            		int id=-1;
 					            		String nome;
 					            		do {
@@ -274,7 +309,7 @@ class ConexaoTCP extends Thread {
 					            	}
 					            	
 					            	else if (opcao == 7) { /* eliminar projeto */
-					             		
+					             		// escrevo num ficheiro
 					            		int projID=-1;
 					            		String nome;
 					            		do {
@@ -292,6 +327,7 @@ class ConexaoTCP extends Thread {
 					            	}
 					            	
 					            	else if (opcao == 8) {
+					            		// escrevo num ficheiro
 					            		Projeto proj;
 					            		float dinheiro;
 					            		int projID=-1;
@@ -308,6 +344,7 @@ class ConexaoTCP extends Thread {
 						            		out.writeUTF("Insira o nome do Projeto a doar:");
 						            		String nome = in.readUTF();
 						            		projID = intRMI.procuraProjeto(nome);
+						            		System.out.println("Recebi o id "+projID);
 						            		if (projID== -1)
 						            			out.writeUTF("Nao existe um projeto com esse nome.");
 					            		}while(projID==-1);
@@ -318,34 +355,39 @@ class ConexaoTCP extends Thread {
 					            			dinheiro = Float.parseFloat(in.readUTF());
 					            		}while(dinheiro<=0);
 					            		
+					            		if (intRMI.validaDoacao(userID, dinheiro)) {
 					            		
-					            		intRMI.doarDinheiro(userID, projID, dinheiro);
-					            		
-					            		// pede a recompensa
-					            		String listaRecompensas=""; 
-					            		listaRecompensas = intRMI.listaRecompensas(projID); 
-					            		
-					            		if (listaRecompensas.compareToIgnoreCase("")==0)
-					            			out.writeUTF("Projeto nao tem recompensas.");
-					            		else {
-					            			out.writeUTF("Escolher uma recompensa.\n");
-					            			out.writeUTF(listaRecompensas);
-					            			int indexRecompensa = Integer.parseInt(in.readUTF());
-					            		
-			
-						            		boolean sucesso = intRMI.escolherRecompensa(userID, projID, dinheiro, indexRecompensa);
-						            		if (sucesso) {
-						            			out.writeUTF("Recompensa adicionada.\n");
-						            			out.writeUTF("Votar?");
-						            			
+						            		intRMI.doarDinheiro(userID, projID, dinheiro);
+						            		
+						            		// pede a recompensa
+						            		String listaRecompensas=""; 
+						            		listaRecompensas = intRMI.listaRecompensas(projID); 
+						            		
+						            		if (listaRecompensas.compareToIgnoreCase("")==0)
+						            			out.writeUTF("Projeto nao tem recompensas.");
+						            		else {
+						            			out.writeUTF("Escolher uma recompensa.\n");
+						            			out.writeUTF(listaRecompensas);
+						            			int indexRecompensa = Integer.parseInt(in.readUTF());
+						            		
+				
+							            		boolean sucesso = intRMI.escolherRecompensa(userID, projID, dinheiro, indexRecompensa);
+							            		if (sucesso) {
+							            			out.writeUTF("Recompensa adicionada.");
+							            			out.writeUTF("Votar?");
+							            			
+							            		}
+							            		else
+							            			out.writeUTF("Recompensa falhou.\n");
+							            		// TODO: acrescentar aqui o caso de ele querer 2+ recompensas 
 						            		}
-						            		else
-						            			out.writeUTF("Recompensa falhou.\n");
-						            		// TODO: acrescentar aqui o caso de ele querer 2+ recompensas 
 					            		}
+					            		else
+					            			out.writeUTF("Saldo insuficiente.");
 					            	}
 					            	
 					            	else if (opcao == 9) {
+					            		// escrevo num ficheiro
 					            		int checkAdmin=0;
 					            		int aux=0;
 					            		int projID;
@@ -375,6 +417,7 @@ class ConexaoTCP extends Thread {
 					            	}
 					            	
 					            	else if (opcao == 10) {
+					            		// escrevo num ficheiro
 					            		int checkAdmin=0;
 					            		int aux=0;
 					            		int projID;
@@ -401,6 +444,7 @@ class ConexaoTCP extends Thread {
 					            		
 					            	}
 					            	
+					            	desfazCliente(out); // desfaz a operação que acabou de fazer
 					            	
 					            }
 				                

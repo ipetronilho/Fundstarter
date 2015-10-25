@@ -18,6 +18,6 @@ public class Recompensa implements Serializable {
 	
 	
 	public String imprimeRecompensa(int i) {
-		return (i+"-"+"Recompensa: "+this.nome+"\nValor: "+this.valor+"\n");
+		return (i+"-"+"Recompensa: "+this.nome+"\nValor: "+this.valor+"id: "+id+"\n");
 	}
 }
