@@ -306,24 +306,24 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 		//Utilizador user = bd.listaUtilizadores.get(userID);
 		//System.out.println("O projeto primeiro chama-se "+bd.listaProjetos.get(0).nome);
 		
-		bd.listaProjetos.remove(bd.listaProjetos.get(0));
-		bd.listaUtilizadores.get(userID).listaIDsProjeto.remove(projID);
+		
+		bd.listaUtilizadores.get(userID).listaIDsProjeto.remove(projID); // retira do admin
 		Projeto proj = procuraProjetoID(projID);
 		
 		// devolve dinheiro aos users
+		// TODO: experiência. em vez de proj, bd. ....
 		devolveDinheiro(proj);
 		
-		//TODO: retira as recompensas
+		//TODO: retira as recompensas aos users
 		retiraRecompensa(userID, proj);
 		
+		retiraDoacao(userID, projID);
 		
-		// TODO: retira doacoes
-		
-		
-		
+		bd.listaProjetos.remove(bd.listaProjetos.get(projID)); // retira da lista global de projetos
 	}
 	
-	synchronized public void devolveDinheiro(Projeto proj) {
+	// funciona
+	public void devolveDinheiro(Projeto proj) {
 		String str="";
 		int userID;
 		float doacao, saldo;
@@ -343,18 +343,35 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 	}
 	
 	synchronized public void retiraRecompensa(int userID, Projeto proj) {
-		
 		int i, j;
-		
-		Utilizador user = bd.listaUtilizadores.get(userID);
+		// pesquisa a recompensa e remove
 		for (i=0;i<proj.listaRecompensas.size();i++) {
-			for (j=0;j<user.listaIDsRecompensas.size();j++) {
-				if (proj.listaRecompensas.get(i).id == user.listaIDsRecompensas.get(j)) {
-					user.listaIDsRecompensas.remove(user.listaIDsRecompensas.get(j));
+			for (j=0;j<bd.listaUtilizadores.get(userID).listaIDsRecompensas.size();j++) {
+				if (proj.listaRecompensas.get(i).id == bd.listaUtilizadores.get(userID).listaIDsRecompensas.get(j)) {
+					bd.listaUtilizadores.get(userID).listaIDsRecompensas.remove(bd.listaUtilizadores.get(userID).listaIDsRecompensas.get(j));
 				}
 			}
 		}
 		
+	}
+	
+	synchronized public void retiraDoacao(int userID, int projID) {
+		
+		String str="";
+		Utilizador user = bd.listaUtilizadores.get(userID); 
+		int idProjeto;
+		float doacao;
+		Set<Entry<Integer, Float>> set = user.listaDoacoesUser.entrySet();
+		Iterator<Entry<Integer, Float>> i= set.iterator();
+		
+		while (i.hasNext()) {
+			Map.Entry <Integer, Float> mentry = (Entry<Integer, Float>) i.next();
+			idProjeto = (int) mentry.getKey();
+			doacao = (float) mentry.getValue();
+			if (idProjeto == projID) {
+				user.listaDoacoesUser.remove(idProjeto, doacao);
+			}
+		}
 	}
 	
 	public boolean validaDoacao(int userID, float dinheiro) {
@@ -365,6 +382,7 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 	
 	synchronized public void doarDinheiro(int userID, int projID, float dinheiro) {
 		Utilizador user = bd.listaUtilizadores.get(userID);
+	
 		Projeto proj = procuraProjetoID(projID);
 		
 		float saldo = user.getSaldo();
