@@ -22,48 +22,19 @@ public class Cliente {
    // static String serverAddress = "169.254.36.100";
     // tem de ter 2 ips e dois portos distintos
     static String serverAddress = "localhost";
+    static String nomeUser="";
     
     public static void main(String args[]) throws InterruptedException {
-
         // args[0] <- hostname of destination
         if (args.length == 0) {
          System.out.println("java TCPClient hostname");
          System.exit(0);
          }
-         
-        
-/*
-        InputStream inconfig = null;
-        try {
-            Properties properties = new Properties();
-            inconfig = new FileInputStream("app.properties");
-            properties.load(inconfig);
-            serverAddress = properties.getProperty("server.address");
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            if (inconfig != null) {
-                try {
-                    inconfig.close();
-                } catch (IOException e) {
-                }
-            }
-        }
-        
-        */
         int[] serversockets = {6000, 8000};
-
+        
         int i, j, fail_counter = 0;
         String msg = "";
         
-        // INÍCIO
-        
-        
-        
-        // FIM
-        
-
         while (true) { // alterna constantemente entre servidores para se ligar
         	
             for (i = 0; i < 2; i++) {
@@ -72,8 +43,10 @@ public class Cliente {
                     System.out.println("Nova ligacao ao servidor: " + (i + 1));
                 }
                 
+                
                 msg = conexaoServidor(serverAddress, serversockets[i]);
              
+                
                 if (msg.compareToIgnoreCase("TROCA") != 0 && msg.length() > 0) {
                     for (j = 0; j < tentativas; j++) { // tenta 3 vezes
                         if (msg.compareToIgnoreCase("TROCA") != 0 && msg.length() > 0) {
@@ -99,18 +72,27 @@ public class Cliente {
 
     }
 
+    public static void setNomeUser(String username) {
+    	nomeUser=username;
+    	System.out.println("WHOOHOO - O meu nome e "+nomeUser);
+    }
+    public static String getNomeUser() {
+    	return nomeUser;
+    }
+    
     // retorna "" se conseguir ligar-se e "TROCA" se for preciso tentar outra vez
     public static String conexaoServidor(String serverAddress, int serversocket) { 
         String str = "";
         Socket s = null;
         String data;
+        //String nomeUser="";
         // regista as operações
         
         try {
             System.out.println("\nHost é '" + serverAddress + "' e socket" + serversocket);
             try {
                 s = new Socket(serverAddress, serversocket);	// conectou-se ao servidor
-            } catch (SocketException e) { // os dois servidores estão offline
+            } catch (SocketException e) { 						// não consegue ligar-se ao servidor
                 return "TROCA";
             }
             DataInputStream in = new DataInputStream(s.getInputStream());
@@ -123,20 +105,15 @@ public class Cliente {
             if (data.compareToIgnoreCase("SIM") == 0) { //pedido aceite
             	
                 str = "";
-                data=in.readUTF();
-                Receiver MyThread = new Receiver(in);
-                if (data.compareToIgnoreCase("RESET")==0) { // restabelece ligação perdida
-	                MyThread.start();
-            		leFicheiro(out);
-            	}
                 
+                Receiver MyThread = new Receiver(in); // lê de teclado
+                MyThread.start();
                 
-
                 String texto = "";
                 InputStreamReader input = new InputStreamReader(System.in);
                 BufferedReader reader = new BufferedReader(input);
                 
-                System.out.println("Avancando...");
+                
                 while (true) {
                     try {
                         texto = reader.readLine(); // lê de teclado
@@ -146,6 +123,7 @@ public class Cliente {
                         out.writeUTF(texto); // escreve
                     } catch (SocketException e) {
                         System.out.println("A conectar-se a outro servidor...");
+                        setNomeUser(MyThread.getNomeUser());
                         return "TROCA";
                     }
                 }
@@ -155,7 +133,7 @@ public class Cliente {
             }
         } catch (IOException ex) {
             Logger.getLogger(Cliente.class.getName()).log(Level.SEVERE, null, ex);
-        } finally {
+        } finally {	// tenho de fechar o socket
             if (s != null) {
                 try {
                     s.close();
@@ -164,14 +142,15 @@ public class Cliente {
                 }
             }
         }
-
+        //MyThread.
+        //setNomeUser(MyThread.);
         return str;
 
     }
     
-    public static void leFicheiro(DataOutputStream out) {
+    public static void leFicheiro(DataOutputStream out, String nomeUser) {
     	// The name of the file to open.
-        String fileName = "ficheiros/infologin.txt";
+        String fileName = "ficheiros/"+nomeUser+"_infologin.txt";
 
         // This will reference one line at a time
         String line = null;
@@ -179,24 +158,19 @@ public class Cliente {
         try {
             FileReader fileReader = new FileReader(fileName);
             BufferedReader bufferedReader = new BufferedReader(fileReader);
-            out.writeUTF("1");
-            while((line = bufferedReader.readLine()) != null) {
+            out.writeUTF("1"); // login
+            while((line = bufferedReader.readLine()) != null) { // escreve os comandos que estavam perdidos
                 out.writeUTF(line);
             }   
 
             bufferedReader.close();         
         }
         catch(FileNotFoundException ex) {
-            System.out.println(
-                "Unable to open file '" + 
-                fileName + "'");                
+            System.out.println("Unable to open file '" + fileName + "'");                
         }
         catch(IOException ex) {
-            System.out.println(
-                "Error reading file '" 
-                + fileName + "'");                  
-            // Or we could just do this: 
-            // ex.printStackTrace();
+            System.out.println("Error reading file '" + fileName + "'");                  
+
         }
     	
     }
@@ -209,24 +183,32 @@ class Receiver extends Thread {
     DataOutputStream out;
     // dados gravados no cliente em caso de falha de rede
     int userID=-1;
+    String nomeUser;
 
     public Receiver(DataInputStream ain) {
         this.in = ain;
     }
+    
+    public String getNomeUser() {
+    	return nomeUser;
+    }
 
     //=============================
     public void run() {
-    	int imprime=1;
         while (true) {
             // READ FROM SOCKET
             try {
                 String data = in.readUTF(); // lê o que foi escrito
-               /* if (data.compareToIgnoreCase("RESET")==0)
-                		imprime=0;
-                if (data.compareToIgnoreCase("DESFAZ_RESET")==0)
-                	imprime=1;
-                		
-                if (imprime==1)*/
+                
+                if (data.compareToIgnoreCase("USER")==0) { // restabelece ligação perdida
+	                nomeUser=in.readUTF(); // capta o username
+	                //setNomeUser(nomeUser);
+	                System.out.println("Captei o username!! é "+getNomeUser());
+	               /* if(nomeUser.compareToIgnoreCase("")!=0)
+	                	leFicheiro(out, nomeUser);*/
+	               
+            	}
+                else
                 	System.out.println("> " + data); // print o que o serv. escreveu
             } catch (SocketException e) {
             	

@@ -1,17 +1,17 @@
 import java.io.DataInputStream;
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
-import java.net.MalformedURLException;
 import java.net.Socket;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
-import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
@@ -72,22 +72,57 @@ class ConexaoTCP extends Thread {
 			e.printStackTrace();
 		} catch (UnsupportedEncodingException e) {
 			e.printStackTrace();
+		}
+    }
+    
+    
+	public boolean ficheiroVazio(String st){
+		BufferedReader br; 
+		try {
+			br= new BufferedReader(new FileReader("ficheiros/"+st+"_infologin.txt"));  
+			if (br.readLine() == null) {
+				br.close();
+			    return true;
+			}
+			br.close();
+			
+		} catch (FileNotFoundException e1) {
+			e1.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		return false;
+    }
+    
+public void guardaFicheiroLogin(String st, String username) {
+    	String filepath;
+    	
+    	filepath="ficheiros/"+username+"_infologin.txt";
+    	
+		try {
+			PrintWriter writer = new PrintWriter(new BufferedWriter(new FileWriter(filepath, true)));
+		    writer.println(st);
+		    writer.close();
+			
+		} catch (FileNotFoundException e) {
+			System.out.println("Ficheiro nao encontrado");
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+    	
     }
-    
-    public void guardaFicheiro(String st, int login) {
+
+    public void guardaFicheiro(String st, String username) {
     	String filepath;
-    	if (login==1)
-    		filepath="ficheiros/infologin.txt";
-		else
-			filepath="ficheiros/operacao.txt";
-    		
+    	
+    	
+		filepath="ficheiros/"+username+"_operacao.txt";
+    	
 		try {
-			//writer = new PrintWriter("ficheiros/infologin.txt", "UTF-8");
-			
 			PrintWriter writer = new PrintWriter(new BufferedWriter(new FileWriter(filepath, true)));
 		    writer.println(st);
 		    writer.close();
@@ -110,6 +145,7 @@ class ConexaoTCP extends Thread {
      // Cliente RMI que se liga ao Servidor RMI
         InterfaceRMI intRMI;
         int checkLogin=0;
+        String nomeUser="";
         
         int verif;
         String dados="";
@@ -134,9 +170,8 @@ class ConexaoTCP extends Thread {
 		            	
 		            	// TODO: mudar Naming...
 						intRMI = (InterfaceRMI) Naming.lookup("rmi://localhost:7000/benfica");
-						int userID=-1; // o ID do user é a posição na arrayList 
-						out.writeUTF("RESET");
-				        	
+						int userID=-1; 				// o ID do user é a posição na arrayList 
+						
 				            while(true){
 				                //an echo server
 					            if (checkLogin == 0) {
@@ -144,25 +179,33 @@ class ConexaoTCP extends Thread {
 					            	// TODO: resumeStatus() 
 					                out.writeUTF("Bem vindo! Seleccione uma opcao! 1-Login; 2-Registar; 3-Consultar dados");
 					                
-					                int i=0;
 					                String data = in.readUTF();
 					                int opcao=Integer.parseInt(data);
-					                System.out.println("Recebi "+data);
+					                //System.out.println("Recebi "+data);
 					                
+					                int guardaDados=0;
+				                	
 					                
 					                
 					                /* LOGIN */
 					                if (opcao==1) {
-					                	
 					                	out.writeUTF("--LOGIN--");
 					                	out.writeUTF("Insira nome de Utilizador");
-					                	String nomeUser = in.readUTF();
-					                	guardaFicheiro(nomeUser,1);
-					                	System.out.println("Recebi "+nomeUser);
+					                	nomeUser = in.readUTF();
+					                	//--
+					                	out.writeUTF("USER");
+					                	out.writeUTF(nomeUser);
+					                	//--
+					                	// só guarda se for a 1ª vez que está a fazer login
+					                	if (ficheiroVazio(nomeUser))
+					                		guardaDados=1;
+					                	if(guardaDados==1)
+					                		guardaFicheiroLogin(nomeUser, nomeUser);
+					                	
 					                	out.writeUTF("Insira password:");
 					                	String password = in.readUTF();
-					                	System.out.println("Recebi "+password);
-					                	guardaFicheiro(password,1);
+					                	if(guardaDados==1)
+					                		guardaFicheiroLogin(password,nomeUser);
 					                	
 					                	// alterar
 					                	userID = intRMI.verificaLogin(nomeUser, password);
@@ -183,11 +226,11 @@ class ConexaoTCP extends Thread {
 					                	out.writeUTF("--REGISTO--");
 					                	
 					                	out.writeUTF("Insira nome de Utilizador");
-					                	String nomeUser = in.readUTF();
-					                	guardaFicheiro(nomeUser,1);
+					                	nomeUser = in.readUTF();
+					                	guardaFicheiroLogin(nomeUser,nomeUser);
 					                	out.writeUTF("Insira password:");
 					                	String password = in.readUTF();
-					                	guardaFicheiro(password,1);
+					                	guardaFicheiroLogin(password,nomeUser);
 					                	
 					                	userID = intRMI.registaConta(nomeUser, password);
 					                	checkLogin=1;
@@ -195,10 +238,11 @@ class ConexaoTCP extends Thread {
 					                
 					                /* CONSULTAR DADOS */
 					                else if (opcao==3) {
+					                	guardaFicheiro(data,nomeUser);
 					                	out.writeUTF("Consultar dados...\n1-Listar Projetos Actuais\n2-Listar Projetos Antigos\n3-Consultar Detalhes de um projeto\n0-Sair");
 					                	data = in.readUTF();
 					                	opcao=Integer.parseInt(data);
-					                	guardaFicheiro(data,0);
+					                	guardaFicheiro(data,nomeUser);
 					                	
 					                	if (opcao==1) {
 					                		out.writeUTF("--PROJETOS ACTUAIS--");
@@ -214,12 +258,11 @@ class ConexaoTCP extends Thread {
 					                	else if (opcao==3) {
 					                		out.writeUTF("Nome do projeto:");
 					                		String nomeProjeto = in.readUTF();
-					                		guardaFicheiro(nomeProjeto,0);
+					                		guardaFicheiro(nomeProjeto,nomeUser);
 					                		int projID = intRMI.procuraProjeto(nomeProjeto);
 					                		resposta = intRMI.imprimeDetalhesProjeto(projID);
 					                		out.writeUTF(resposta);
 					                	}
-					                	//desfazCliente(out);
 					                }
 					            }
 					                
@@ -244,7 +287,7 @@ class ConexaoTCP extends Thread {
 					            	out.writeUTF("Cheguei aqui!!");
 					            	String data = in.readUTF();
 					            	int opcao=Integer.parseInt(data);
-					            	guardaFicheiro(data,0);
+					            	guardaFicheiro(data,nomeUser);
 					            	
 					            	if (opcao == 0) {
 					            		out.writeUTF("A sair...");
@@ -270,7 +313,7 @@ class ConexaoTCP extends Thread {
 					                	out.writeUTF("Consultar dados...\n1-Listar Projetos Actuais\n2-Listar Projetos Antigos\n3-Consultar Detalhes de um projeto\n0-Sair");
 					                	data = in.readUTF();
 					                	opcao=Integer.parseInt(data);
-					                	guardaFicheiro(data,0);
+					                	guardaFicheiro(data,nomeUser);
 					                	
 					                	if (opcao==1) {
 					                		out.writeUTF("--PROJETOS ACTUAIS--");
@@ -286,7 +329,7 @@ class ConexaoTCP extends Thread {
 					                	else if (opcao==3) {
 					                		out.writeUTF("Nome do projeto:");
 					                		String nomeProjeto = in.readUTF();
-					                		guardaFicheiro(nomeProjeto,0);
+					                		guardaFicheiro(nomeProjeto,nomeUser);
 					                		int projID = intRMI.procuraProjeto(nomeProjeto);
 					                		resposta = intRMI.imprimeDetalhesProjeto(projID);
 					                		out.writeUTF(resposta);
@@ -307,7 +350,7 @@ class ConexaoTCP extends Thread {
 					            		do {
 					            			out.writeUTF("Nome do projeto:");
 					            			nome = in.readUTF();
-					            			guardaFicheiro(nome,0);
+					            			guardaFicheiro(nome,nomeUser);
 						            		id = intRMI.procuraProjeto(nome);
 						            		//out.writeUTF("O meu id e "+id);
 						            		if (id!=-1)
@@ -318,7 +361,7 @@ class ConexaoTCP extends Thread {
 						            		// TODO: proteção - strings
 						            		out.writeUTF("Valor objetivo:");
 						            		String valor=in.readUTF();
-						            		guardaFicheiro(valor,0);
+						            		guardaFicheiro(valor,nomeUser);
 						            		float valor_objetivo = Float.parseFloat(valor);
 						            		/*
 						            		 * out.writeUTF("Data inicial do projeto:");
@@ -329,18 +372,18 @@ class ConexaoTCP extends Thread {
 						            		out.writeUTF("Data final do projeto:");
 						            		out.writeUTF("Dia: ");
 						            		String diaLido=in.readUTF();
-						            		guardaFicheiro(diaLido,0);
+						            		guardaFicheiro(diaLido,nomeUser);
 						            		int dia = Integer.parseInt(diaLido);
 						            		
 						            		out.writeUTF("Mês: ");
 						            		String mesLido=in.readUTF();
 						            		int mes = Integer.parseInt(mesLido);
-						            		guardaFicheiro(mesLido,0);
+						            		guardaFicheiro(mesLido,nomeUser);
 						            		
 						            		out.writeUTF("Ano: ");
 						            		String anoLido=in.readUTF();
 						            		int ano = Integer.parseInt(anoLido);
-						            		guardaFicheiro(anoLido,0);
+						            		guardaFicheiro(anoLido,nomeUser);
 						            		
 						            		Calendar dataFinal = new GregorianCalendar();
 						            		dataFinal.set(Calendar.YEAR, ano);
@@ -365,7 +408,7 @@ class ConexaoTCP extends Thread {
 					            		do {
 					            			out.writeUTF("Nome do projeto:");
 					            			nome = in.readUTF();
-					            			guardaFicheiro(nome,0);
+					            			guardaFicheiro(nome,nomeUser);
 						            		projID = intRMI.procuraProjeto(nome);
 						            		
 						            		if (projID==-1)
@@ -379,7 +422,6 @@ class ConexaoTCP extends Thread {
 					            	
 					            	else if (opcao == 8) {
 					            		// escrevo num ficheiro
-					            		Projeto proj;
 					            		float dinheiro;
 					            		int projID=-1;
 					            		
@@ -394,7 +436,7 @@ class ConexaoTCP extends Thread {
 					            			}
 						            		out.writeUTF("Insira o nome do Projeto a doar:");
 						            		String nome = in.readUTF();
-						            		guardaFicheiro(nome,0);
+						            		guardaFicheiro(nome,nomeUser);
 						            		projID = intRMI.procuraProjeto(nome);
 						            		System.out.println("Recebi o id "+projID);
 						            		if (projID== -1)
@@ -405,7 +447,7 @@ class ConexaoTCP extends Thread {
 					            		do {
 					            			out.writeUTF("Quantia a doar?\n");
 					            			String quantia=in.readUTF();
-					            			guardaFicheiro(quantia,0);
+					            			guardaFicheiro(quantia,nomeUser);
 					            			dinheiro = Float.parseFloat(quantia);
 					            		}while(dinheiro<=0);
 					            		
@@ -423,7 +465,7 @@ class ConexaoTCP extends Thread {
 						            			out.writeUTF("Escolher uma recompensa.\n");
 						            			out.writeUTF(listaRecompensas);
 						            			resposta=in.readUTF();
-						            			guardaFicheiro(resposta,0);
+						            			guardaFicheiro(resposta,nomeUser);
 						            			int indexRecompensa = Integer.parseInt(resposta);
 						            			
 						            		
@@ -452,7 +494,7 @@ class ConexaoTCP extends Thread {
 					            		do {
 						            		out.writeUTF("Insira o nome do Projeto:");
 						            		String nomeProjeto = in.readUTF();
-						            		guardaFicheiro(nomeProjeto,0);
+						            		guardaFicheiro(nomeProjeto,nomeUser);
 						            		projID = intRMI.procuraProjeto(nomeProjeto);
 						            		if (projID == -1)
 						            			out.writeUTF("Nao existe um projeto com esse nome.");
@@ -462,15 +504,15 @@ class ConexaoTCP extends Thread {
 						            			out.writeUTF("0-Sair\n1-Tentar de novo");
 						            			resposta=in.readUTF();
 						            			aux=Integer.parseInt(resposta);
-						            			guardaFicheiro(resposta,0);
+						            			guardaFicheiro(resposta,nomeUser);
 						            		}
 						            		else if (checkAdmin==1) {
 							            		out.writeUTF("Nome da recompensa:");
 							            		String nome=in.readUTF();
-							            		guardaFicheiro(nome,0);
+							            		guardaFicheiro(nome,nomeUser);
 							            		out.writeUTF("Valor da recompensa:");
 							            		resposta=in.readUTF();
-							            		guardaFicheiro(resposta,0);
+							            		guardaFicheiro(resposta,nomeUser);
 							            		float valor = Float.parseFloat(resposta);
 							            		intRMI.addRecompensa(userID, projID, nome, valor);
 						            		}
@@ -488,7 +530,7 @@ class ConexaoTCP extends Thread {
 					            		do {
 						            		out.writeUTF("Insira o nome do Projeto:");
 						            		String nomeProjeto = in.readUTF();
-						            		guardaFicheiro(nomeProjeto,0);
+						            		guardaFicheiro(nomeProjeto,nomeUser);
 						            		projID = intRMI.procuraProjeto(nomeProjeto);
 						            		if (projID == -1)
 						            			out.writeUTF("Nao existe um projeto com esse nome.");
@@ -498,12 +540,12 @@ class ConexaoTCP extends Thread {
 						            			out.writeUTF("0-Sair\n1-Tentar de novo");
 						            			resposta=in.readUTF();
 						            			aux=Integer.parseInt(resposta);
-						            			guardaFicheiro(resposta,0);
+						            			guardaFicheiro(resposta,nomeUser);
 						            		}
 						            		else if (checkAdmin==1) {
 							            		out.writeUTF("Nome da recompensa:");
 							            		String nome=in.readUTF();
-							            		guardaFicheiro(nome,0);
+							            		guardaFicheiro(nome,nomeUser);
 							            		intRMI.removeRecompensa(userID, projID, nome);
 						            		}
 					            		}while(projID==-1 || checkAdmin==0 || aux==1);
@@ -516,7 +558,6 @@ class ConexaoTCP extends Thread {
 					            		String projNome = in.readUTF();
 					            		int projID = intRMI.procuraProjeto(projNome);
 					            		int checkAdmin = intRMI.verificaAdministrador(userID, projID);
-					            		int index;
 					            		do {
 						            		out.writeUTF("1-Deixar mensagem");
 						            		out.writeUTF("2-Consultar mensagens");
@@ -528,21 +569,21 @@ class ConexaoTCP extends Thread {
 						            		if (opcao==1) {
 						            			out.writeUTF("Mensagem:");
 						            			String mensagem = in.readUTF();
-						            			guardaFicheiro(mensagem,0);
+						            			guardaFicheiro(mensagem,nomeUser);
 						            			
 						            			intRMI.adicionaMensagem(userID, projID, mensagem);
 						            		}
 						            		// TODO: mostrar apenas aquelas que são mandadas pelo user?
 						            		else if (opcao==2) {
 					            				resposta = intRMI.consultaMensagens(projID);
-					            				guardaFicheiro(resposta,0);
+					            				guardaFicheiro(resposta,nomeUser);
 					            				out.writeUTF(resposta);
 						            		}
 						            		else if (opcao==3) {
 						            			if (checkAdmin==1) {
 						            				out.writeUTF("Responder a que utilizador? (inserir ID)");
 						            				resposta=in.readUTF();
-						            				guardaFicheiro(resposta,0);
+						            				guardaFicheiro(resposta,nomeUser);
 						            				int id=Integer.parseInt(resposta);
 						            				out.writeUTF("Resposta: ");
 						            				String mensagem=in.readUTF();
