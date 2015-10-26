@@ -1,7 +1,12 @@
 import java.io.DataInputStream;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.io.DataOutputStream;
 import java.io.EOFException;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.Socket;
 import java.rmi.Naming;
@@ -51,28 +56,52 @@ class ConexaoTCP extends Thread {
         }catch(IOException e){System.out.println("Connection:" + e.getMessage());}
     }
     
-    // push
-    public void updateEstadoCliente(DataOutputStream out, String opcao) {
-    	
-    	try {
-    		out.writeUTF("OPERACAO");
-			out.writeUTF(opcao);
+    public void apagaConteudoFicheiro(int login) {
+    	String filepath;
+    	if (login==1)
+    		filepath="ficheiros/infologin.txt";
+		else
+			filepath="ficheiros/operacao.txt";
+    		
+		try {
+			PrintWriter writer = new PrintWriter(filepath, "UTF-8");
+			
+		    writer.close();
+			
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
     }
     
-    public void desfazCliente(DataOutputStream out) {
-    	
-    	try {
-    		out.writeUTF("DESFAZ");
+    public void guardaFicheiro(String st, int login) {
+    	String filepath;
+    	if (login==1)
+    		filepath="ficheiros/infologin.txt";
+		else
+			filepath="ficheiros/operacao.txt";
+    		
+		try {
+			//writer = new PrintWriter("ficheiros/infologin.txt", "UTF-8");
+			
+			PrintWriter writer = new PrintWriter(new BufferedWriter(new FileWriter(filepath, true)));
+		    writer.println(st);
+		    writer.close();
+			
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+    	
     }
-    
     
     
     //=============================
@@ -106,8 +135,7 @@ class ConexaoTCP extends Thread {
 		            	// TODO: mudar Naming...
 						intRMI = (InterfaceRMI) Naming.lookup("rmi://localhost:7000/benfica");
 						int userID=-1; // o ID do user é a posição na arrayList 
-						Utilizador user = new Utilizador(); // TODO: apagar
-						out.writeUTF("NOVASESSAO");
+						out.writeUTF("RESET");
 				        	
 				            while(true){
 				                //an echo server
@@ -119,8 +147,8 @@ class ConexaoTCP extends Thread {
 					                int i=0;
 					                String data = in.readUTF();
 					                int opcao=Integer.parseInt(data);
+					                System.out.println("Recebi "+data);
 					                
-					                updateEstadoCliente(out, data);
 					                
 					                
 					                /* LOGIN */
@@ -129,9 +157,12 @@ class ConexaoTCP extends Thread {
 					                	out.writeUTF("--LOGIN--");
 					                	out.writeUTF("Insira nome de Utilizador");
 					                	String nomeUser = in.readUTF();
+					                	guardaFicheiro(nomeUser,1);
+					                	System.out.println("Recebi "+nomeUser);
 					                	out.writeUTF("Insira password:");
 					                	String password = in.readUTF();
-					                	
+					                	System.out.println("Recebi "+password);
+					                	guardaFicheiro(password,1);
 					                	
 					                	// alterar
 					                	userID = intRMI.verificaLogin(nomeUser, password);
@@ -139,7 +170,7 @@ class ConexaoTCP extends Thread {
 					                	if (userID != -1) {
 					                		checkLogin=1;
 					                		out.writeUTF("Login efectuado com sucesso\n");
-					                		updateEstadoCliente(out, Integer.toString(userID)); // envia o userID
+					                		
 					                	}
 					                	else
 					                		out.writeUTF("Login invalido.");
@@ -153,8 +184,10 @@ class ConexaoTCP extends Thread {
 					                	
 					                	out.writeUTF("Insira nome de Utilizador");
 					                	String nomeUser = in.readUTF();
+					                	guardaFicheiro(nomeUser,1);
 					                	out.writeUTF("Insira password:");
 					                	String password = in.readUTF();
+					                	guardaFicheiro(password,1);
 					                	
 					                	userID = intRMI.registaConta(nomeUser, password);
 					                	checkLogin=1;
@@ -164,11 +197,9 @@ class ConexaoTCP extends Thread {
 					                else if (opcao==3) {
 					                	out.writeUTF("Consultar dados...\n1-Listar Projetos Actuais\n2-Listar Projetos Antigos\n3-Consultar Detalhes de um projeto\n0-Sair");
 					                	data = in.readUTF();
-					                	
-					                	//--
-					                	////informaCliente(out, data);
-					                	
 					                	opcao=Integer.parseInt(data);
+					                	guardaFicheiro(data,0);
+					                	
 					                	if (opcao==1) {
 					                		out.writeUTF("--PROJETOS ACTUAIS--");
 					                		resposta = intRMI.listaProjetosActuais();
@@ -183,6 +214,7 @@ class ConexaoTCP extends Thread {
 					                	else if (opcao==3) {
 					                		out.writeUTF("Nome do projeto:");
 					                		String nomeProjeto = in.readUTF();
+					                		guardaFicheiro(nomeProjeto,0);
 					                		int projID = intRMI.procuraProjeto(nomeProjeto);
 					                		resposta = intRMI.imprimeDetalhesProjeto(projID);
 					                		out.writeUTF(resposta);
@@ -209,9 +241,10 @@ class ConexaoTCP extends Thread {
 					            	out.writeUTF("11-Consultar inbox de um projeto"); // TODO
 					            	out.writeUTF("0-logout");
 					            	
+					            	out.writeUTF("Cheguei aqui!!");
 					            	String data = in.readUTF();
 					            	int opcao=Integer.parseInt(data);
-					            	//informaCliente(out, data);
+					            	guardaFicheiro(data,0);
 					            	
 					            	if (opcao == 0) {
 					            		out.writeUTF("A sair...");
@@ -237,7 +270,7 @@ class ConexaoTCP extends Thread {
 					                	out.writeUTF("Consultar dados...\n1-Listar Projetos Actuais\n2-Listar Projetos Antigos\n3-Consultar Detalhes de um projeto\n0-Sair");
 					                	data = in.readUTF();
 					                	opcao=Integer.parseInt(data);
-					                	//informaCliente(out, data);
+					                	guardaFicheiro(data,0);
 					                	
 					                	if (opcao==1) {
 					                		out.writeUTF("--PROJETOS ACTUAIS--");
@@ -253,6 +286,7 @@ class ConexaoTCP extends Thread {
 					                	else if (opcao==3) {
 					                		out.writeUTF("Nome do projeto:");
 					                		String nomeProjeto = in.readUTF();
+					                		guardaFicheiro(nomeProjeto,0);
 					                		int projID = intRMI.procuraProjeto(nomeProjeto);
 					                		resposta = intRMI.imprimeDetalhesProjeto(projID);
 					                		out.writeUTF(resposta);
@@ -273,6 +307,7 @@ class ConexaoTCP extends Thread {
 					            		do {
 					            			out.writeUTF("Nome do projeto:");
 					            			nome = in.readUTF();
+					            			guardaFicheiro(nome,0);
 						            		id = intRMI.procuraProjeto(nome);
 						            		//out.writeUTF("O meu id e "+id);
 						            		if (id!=-1)
@@ -282,7 +317,9 @@ class ConexaoTCP extends Thread {
 					            		try {
 						            		// TODO: proteção - strings
 						            		out.writeUTF("Valor objetivo:");
-						            		float valor_objetivo = Float.parseFloat(in.readUTF());
+						            		String valor=in.readUTF();
+						            		guardaFicheiro(valor,0);
+						            		float valor_objetivo = Float.parseFloat(valor);
 						            		/*
 						            		 * out.writeUTF("Data inicial do projeto:");
 						            		 * Calendar user = new GregorianCalendar(2012, Calendar.MAY, 17);
@@ -291,11 +328,20 @@ class ConexaoTCP extends Thread {
 						            		
 						            		out.writeUTF("Data final do projeto:");
 						            		out.writeUTF("Dia: ");
-						            		int dia = Integer.parseInt(in.readUTF());
+						            		String diaLido=in.readUTF();
+						            		guardaFicheiro(diaLido,0);
+						            		int dia = Integer.parseInt(diaLido);
+						            		
 						            		out.writeUTF("Mês: ");
-						            		int mes = Integer.parseInt(in.readUTF());
+						            		String mesLido=in.readUTF();
+						            		int mes = Integer.parseInt(mesLido);
+						            		guardaFicheiro(mesLido,0);
+						            		
 						            		out.writeUTF("Ano: ");
-						            		int ano = Integer.parseInt(in.readUTF());
+						            		String anoLido=in.readUTF();
+						            		int ano = Integer.parseInt(anoLido);
+						            		guardaFicheiro(anoLido,0);
+						            		
 						            		Calendar dataFinal = new GregorianCalendar();
 						            		dataFinal.set(Calendar.YEAR, ano);
 						            		dataFinal.set(Calendar.MONTH, mes);
@@ -319,6 +365,7 @@ class ConexaoTCP extends Thread {
 					            		do {
 					            			out.writeUTF("Nome do projeto:");
 					            			nome = in.readUTF();
+					            			guardaFicheiro(nome,0);
 						            		projID = intRMI.procuraProjeto(nome);
 						            		
 						            		if (projID==-1)
@@ -347,6 +394,7 @@ class ConexaoTCP extends Thread {
 					            			}
 						            		out.writeUTF("Insira o nome do Projeto a doar:");
 						            		String nome = in.readUTF();
+						            		guardaFicheiro(nome,0);
 						            		projID = intRMI.procuraProjeto(nome);
 						            		System.out.println("Recebi o id "+projID);
 						            		if (projID== -1)
@@ -356,7 +404,9 @@ class ConexaoTCP extends Thread {
 					            		// pede a quantia
 					            		do {
 					            			out.writeUTF("Quantia a doar?\n");
-					            			dinheiro = Float.parseFloat(in.readUTF());
+					            			String quantia=in.readUTF();
+					            			guardaFicheiro(quantia,0);
+					            			dinheiro = Float.parseFloat(quantia);
 					            		}while(dinheiro<=0);
 					            		
 					            		if (intRMI.validaDoacao(userID, dinheiro)) {
@@ -372,7 +422,10 @@ class ConexaoTCP extends Thread {
 						            		else {
 						            			out.writeUTF("Escolher uma recompensa.\n");
 						            			out.writeUTF(listaRecompensas);
-						            			int indexRecompensa = Integer.parseInt(in.readUTF());
+						            			resposta=in.readUTF();
+						            			guardaFicheiro(resposta,0);
+						            			int indexRecompensa = Integer.parseInt(resposta);
+						            			
 						            		
 				
 							            		boolean sucesso = intRMI.escolherRecompensa(userID, projID, dinheiro, indexRecompensa);
@@ -399,6 +452,7 @@ class ConexaoTCP extends Thread {
 					            		do {
 						            		out.writeUTF("Insira o nome do Projeto:");
 						            		String nomeProjeto = in.readUTF();
+						            		guardaFicheiro(nomeProjeto,0);
 						            		projID = intRMI.procuraProjeto(nomeProjeto);
 						            		if (projID == -1)
 						            			out.writeUTF("Nao existe um projeto com esse nome.");
@@ -406,13 +460,18 @@ class ConexaoTCP extends Thread {
 						            		if (checkAdmin == 0) {
 						            			out.writeUTF("Nao é administrador desse projeto!");
 						            			out.writeUTF("0-Sair\n1-Tentar de novo");
-						            			aux=Integer.parseInt(in.readUTF());
+						            			resposta=in.readUTF();
+						            			aux=Integer.parseInt(resposta);
+						            			guardaFicheiro(resposta,0);
 						            		}
 						            		else if (checkAdmin==1) {
 							            		out.writeUTF("Nome da recompensa:");
 							            		String nome=in.readUTF();
+							            		guardaFicheiro(nome,0);
 							            		out.writeUTF("Valor da recompensa:");
-							            		float valor = Float.parseFloat(in.readUTF());
+							            		resposta=in.readUTF();
+							            		guardaFicheiro(resposta,0);
+							            		float valor = Float.parseFloat(resposta);
 							            		intRMI.addRecompensa(userID, projID, nome, valor);
 						            		}
 					            		}while(projID==-1 || checkAdmin==0 || aux==1);
@@ -429,6 +488,7 @@ class ConexaoTCP extends Thread {
 					            		do {
 						            		out.writeUTF("Insira o nome do Projeto:");
 						            		String nomeProjeto = in.readUTF();
+						            		guardaFicheiro(nomeProjeto,0);
 						            		projID = intRMI.procuraProjeto(nomeProjeto);
 						            		if (projID == -1)
 						            			out.writeUTF("Nao existe um projeto com esse nome.");
@@ -436,18 +496,21 @@ class ConexaoTCP extends Thread {
 						            		if (checkAdmin == 0) {
 						            			out.writeUTF("Nao é administrador desse projeto!");
 						            			out.writeUTF("0-Sair\n1-Tentar de novo");
-						            			aux=Integer.parseInt(in.readUTF());
+						            			resposta=in.readUTF();
+						            			aux=Integer.parseInt(resposta);
+						            			guardaFicheiro(resposta,0);
 						            		}
 						            		else if (checkAdmin==1) {
 							            		out.writeUTF("Nome da recompensa:");
 							            		String nome=in.readUTF();
+							            		guardaFicheiro(nome,0);
 							            		intRMI.removeRecompensa(userID, projID, nome);
 						            		}
 					            		}while(projID==-1 || checkAdmin==0 || aux==1);
 					            		
 					            		
 					            	}
-					            	
+					            	// TODO: não perder mensagens
 					            	else if (opcao==11) {
 					            		out.writeUTF("Nome do projeto:");
 					            		String projNome = in.readUTF();
@@ -465,18 +528,21 @@ class ConexaoTCP extends Thread {
 						            		if (opcao==1) {
 						            			out.writeUTF("Mensagem:");
 						            			String mensagem = in.readUTF();
+						            			guardaFicheiro(mensagem,0);
 						            			
 						            			intRMI.adicionaMensagem(userID, projID, mensagem);
 						            		}
-						            		// TODO: mostrar apenas aquelas que são mandadas pelo user
+						            		// TODO: mostrar apenas aquelas que são mandadas pelo user?
 						            		else if (opcao==2) {
 					            				resposta = intRMI.consultaMensagens(projID);
+					            				guardaFicheiro(resposta,0);
 					            				out.writeUTF(resposta);
 						            		}
 						            		else if (opcao==3) {
 						            			if (checkAdmin==1) {
 						            				out.writeUTF("Responder a que utilizador? (inserir ID)");
 						            				resposta=in.readUTF();
+						            				guardaFicheiro(resposta,0);
 						            				int id=Integer.parseInt(resposta);
 						            				out.writeUTF("Resposta: ");
 						            				String mensagem=in.readUTF();
@@ -487,9 +553,7 @@ class ConexaoTCP extends Thread {
 						            		}
 					            		}while(opcao!=0);
 					            	}
-					            	
-					            	//desfazCliente(out); // desfaz a operação que acabou de fazer
-					            	
+					            	apagaConteudoFicheiro(0);
 					            }
 				                
 				            }

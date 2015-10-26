@@ -121,16 +121,22 @@ public class Cliente {
             data = in.readUTF();
 
             if (data.compareToIgnoreCase("SIM") == 0) { //pedido aceite
+            	
                 str = "";
-
-                Receiver MyThread = new Receiver(in, out);
-                MyThread.start();
+                data=in.readUTF();
+                Receiver MyThread = new Receiver(in);
+                if (data.compareToIgnoreCase("RESET")==0) { // restabelece ligação perdida
+	                MyThread.start();
+            		leFicheiro(out);
+            	}
+                
+                
 
                 String texto = "";
                 InputStreamReader input = new InputStreamReader(System.in);
                 BufferedReader reader = new BufferedReader(input);
                 
-
+                System.out.println("Avancando...");
                 while (true) {
                     try {
                         texto = reader.readLine(); // lê de teclado
@@ -163,6 +169,37 @@ public class Cliente {
 
     }
     
+    public static void leFicheiro(DataOutputStream out) {
+    	// The name of the file to open.
+        String fileName = "ficheiros/infologin.txt";
+
+        // This will reference one line at a time
+        String line = null;
+
+        try {
+            FileReader fileReader = new FileReader(fileName);
+            BufferedReader bufferedReader = new BufferedReader(fileReader);
+            out.writeUTF("1");
+            while((line = bufferedReader.readLine()) != null) {
+                out.writeUTF(line);
+            }   
+
+            bufferedReader.close();         
+        }
+        catch(FileNotFoundException ex) {
+            System.out.println(
+                "Unable to open file '" + 
+                fileName + "'");                
+        }
+        catch(IOException ex) {
+            System.out.println(
+                "Error reading file '" 
+                + fileName + "'");                  
+            // Or we could just do this: 
+            // ex.printStackTrace();
+        }
+    	
+    }
     
 }
 
@@ -173,66 +210,27 @@ class Receiver extends Thread {
     // dados gravados no cliente em caso de falha de rede
     int userID=-1;
 
-    public Receiver(DataInputStream ain, DataOutputStream out) {
+    public Receiver(DataInputStream ain) {
         this.in = ain;
-        this.out = out;
     }
-    
-    
 
     //=============================
     public void run() {
+    	int imprime=1;
         while (true) {
             // READ FROM SOCKET
             try {
                 String data = in.readUTF(); // lê o que foi escrito
-                // acabou de fazer uma operação logo tenho de a gravar
-             
-                /*if (data.compareToIgnoreCase("OPERACAO")==0) {
-                	//System.out.println("\nEntrei");
-                	String opcao=in.readUTF();
-                	System.out.println("()"+opcao);
-                	int operacao=Integer.parseInt(opcao);
-                	
-                	if (listaOperacoes.isEmpty()) {
-                		listaOperacoes.add(operacao);
-                	}
-                	else {
-	                	// quando faz login/regista, tenho o id do user
-	                	if ((listaOperacoes.get(0) == 1 || listaOperacoes.get(0) == 2) && userID==-1) {
-                			// obtenho o userID
-                    		userID=operacao;
-                    	}
-	                	//já fez login
-	                	else if (userID!=-1) {
-	                		listaOperacoes.add(operacao);
-	                		
-	                	}
-                	}
-                }
-                //remove a operação
-                else if (data.compareToIgnoreCase("DESFAZ")==0) {
-                	
-                }
-                
-                else if (data.compareToIgnoreCase("NOVASESSAO")==0) {
-                	int i;
-                	System.out.println("Alerta nova sessao!");
-                	if (!listaOperacoes.isEmpty()) {
+               /* if (data.compareToIgnoreCase("RESET")==0)
+                		imprime=0;
+                if (data.compareToIgnoreCase("DESFAZ_RESET")==0)
+                	imprime=1;
                 		
-	                	for (i=0;i<listaOperacoes.size();i++) {
-	                		//System.out.println("Recebo"+in.readUTF());
-	                		String operacao = Integer.toString(listaOperacoes.get(i));
-	                		out.writeUTF(operacao);
-	                	}
-                	}
-                }
-                
-                else*/
+                if (imprime==1)*/
                 	System.out.println("> " + data); // print o que o serv. escreveu
             } catch (SocketException e) {
-            	guardaOperacoes();
-                //System.out.print("O Socket Servidor fechou"); //Caso o socket de conecção ao cliente se fechar este imprime o erro
+            	
+                System.out.print("O Socket Servidor fechou"); //Caso o socket de conecção ao cliente se fechar este imprime o erro
                 break;
             } catch (Exception e) {
                 System.out.println("Sock:" + e.getMessage());
@@ -242,18 +240,5 @@ class Receiver extends Thread {
         //System.out.println("Fim.");
 
     }
-    
-    public void guardaOperacoes() {
-    	System.out.println("Vou guardar!");
-    	
-        try {
-        	FileOutputStream fout = new FileOutputStream("operacoes/opcoes.txt");
-            ObjectOutputStream objout = new ObjectOutputStream(fout);
-			objout.writeObject(this.listaOperacoes);
-			objout.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		} 
-        
-    }
+
 }
