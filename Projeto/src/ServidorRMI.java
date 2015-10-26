@@ -17,7 +17,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 	
-	// TODO: elimina projeto
 	
 	AtomicInteger contadorIDProjeto = new AtomicInteger(0);
 	AtomicInteger contadorIDRecompensa = new AtomicInteger(0);
@@ -199,7 +198,7 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 		return str;
 	}
 	
-	// TODO: nao resulta para 2 doações porquê? - resulta sim!
+	
 	public String imprimeDoacoesUser(int userID) {
 		String str="";
 		Utilizador user = bd.listaUtilizadores.get(userID); 
@@ -311,10 +310,8 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 		Projeto proj = procuraProjetoID(projID);
 		
 		// devolve dinheiro aos users
-		// TODO: experiência. em vez de proj, bd. ....
 		devolveDinheiro(proj);
 		
-		//TODO: retira as recompensas aos users
 		retiraRecompensa(userID, proj);
 		
 		retiraDoacao(userID, projID);
@@ -389,7 +386,7 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 		proj.listaDoacoes.put(userID, dinheiro);  		// acrescenta user ao Projeto
 		System.out.println("Vai doar ao projeto "+proj.nome+" e procurar "+projID);
 		
-		if (user.contemDoacao(projID)) {	// TODO: está mal porque acha que user ja doou ao projeto			
+		if (user.contemDoacao(projID)) {			
 			dinheiro += user.listaDoacoesUser.get(projID);
 		}
 		

@@ -24,6 +24,8 @@ class ConexaoTCP extends Thread {
     /* 
      * TODO:
      * 
+     * ficheiro
+     * 
      * hashmaps: em vez de ==, posso simplesmente procurar por chave e ele devolve o valor
      * 
      * transaccional: as 2 operações (doar dinheiro e receber recompensa) têm de devolver true.
@@ -50,7 +52,7 @@ class ConexaoTCP extends Thread {
     }
     
     // push
-    /*public void informaCliente(DataOutputStream out, String opcao) {
+    public void updateEstadoCliente(DataOutputStream out, String opcao) {
     	
     	try {
     		out.writeUTF("OPERACAO");
@@ -59,7 +61,7 @@ class ConexaoTCP extends Thread {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-    }*/
+    }
     
     public void desfazCliente(DataOutputStream out) {
     	
@@ -91,7 +93,7 @@ class ConexaoTCP extends Thread {
         
         try{
             if (dados.compareToIgnoreCase("PEDIDO") == 0) {
-                out.writeUTF(confirma); //confirmação conforme o estado do outro servidor
+                out.writeUTF(confirma); //SIM ou NAO, caso aceite ou nao pedidos
                 
 
 		        //Verifica o login e efectua o registo.
@@ -105,7 +107,7 @@ class ConexaoTCP extends Thread {
 						intRMI = (InterfaceRMI) Naming.lookup("rmi://localhost:7000/benfica");
 						int userID=-1; // o ID do user é a posição na arrayList 
 						Utilizador user = new Utilizador(); // TODO: apagar
-						
+						out.writeUTF("NOVASESSAO");
 				        	
 				            while(true){
 				                //an echo server
@@ -118,17 +120,18 @@ class ConexaoTCP extends Thread {
 					                String data = in.readUTF();
 					                int opcao=Integer.parseInt(data);
 					                
-					                //informaCliente(out, data);
+					                updateEstadoCliente(out, data);
 					                
 					                
 					                /* LOGIN */
 					                if (opcao==1) {
-					                		
+					                	
 					                	out.writeUTF("--LOGIN--");
 					                	out.writeUTF("Insira nome de Utilizador");
 					                	String nomeUser = in.readUTF();
 					                	out.writeUTF("Insira password:");
 					                	String password = in.readUTF();
+					                	
 					                	
 					                	// alterar
 					                	userID = intRMI.verificaLogin(nomeUser, password);
@@ -136,6 +139,7 @@ class ConexaoTCP extends Thread {
 					                	if (userID != -1) {
 					                		checkLogin=1;
 					                		out.writeUTF("Login efectuado com sucesso\n");
+					                		updateEstadoCliente(out, Integer.toString(userID)); // envia o userID
 					                	}
 					                	else
 					                		out.writeUTF("Login invalido.");
@@ -183,7 +187,7 @@ class ConexaoTCP extends Thread {
 					                		resposta = intRMI.imprimeDetalhesProjeto(projID);
 					                		out.writeUTF(resposta);
 					                	}
-					                	desfazCliente(out);
+					                	//desfazCliente(out);
 					                }
 					            }
 					                
@@ -444,7 +448,7 @@ class ConexaoTCP extends Thread {
 					            		
 					            	}
 					            	
-					            	desfazCliente(out); // desfaz a operação que acabou de fazer
+					            	//desfazCliente(out); // desfaz a operação que acabou de fazer
 					            	
 					            }
 				                

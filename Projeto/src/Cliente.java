@@ -7,6 +7,7 @@
 import java.net.*;
 import java.io.*;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.Properties;
 import java.util.Stack;
@@ -21,6 +22,7 @@ public class Cliente {
    // static String serverAddress = "169.254.36.100";
     // tem de ter 2 ips e dois portos distintos
     static String serverAddress = "localhost";
+    
     public static void main(String args[]) throws InterruptedException {
 
         // args[0] <- hostname of destination
@@ -61,19 +63,21 @@ public class Cliente {
             for (i = 0; i < 2; i++) {
 
                 if (DEBUG == true) {
-                    System.out.println("Vou ligar-me ao servidor: " + (i + 1));
+                    System.out.println("Nova ligacao ao servidor: " + (i + 1));
                 }
                 
                 msg = conexaoServidor(serverAddress, serversockets[i]);
-
+             
                 if (msg.compareToIgnoreCase("TROCA") != 0 && msg.length() > 0) {
                     for (j = 0; j < tentativas; j++) { // tenta 3 vezes
                         if (msg.compareToIgnoreCase("TROCA") != 0 && msg.length() > 0) {
                             Thread.sleep(1000); // espera 1 segundo e volta a tentar
                             msg = conexaoServidor(serverAddress, serversockets[i]);
+                            System.out.println("Recebi "+msg);
                         } 
                         else {
                             j = tentativas;
+                            System.out.println("Vou trocar!");
                         }
                     }
                 }
@@ -113,7 +117,7 @@ public class Cliente {
             if (data.compareToIgnoreCase("SIM") == 0) { //pedido aceite
                 str = "";
 
-                Receiver MyThread = new Receiver(in);
+                Receiver MyThread = new Receiver(in, out);
                 MyThread.start();
 
                 String texto = "";
@@ -123,17 +127,17 @@ public class Cliente {
 
                 while (true) {
                     try {
-                        texto = reader.readLine();
+                        texto = reader.readLine(); // lê de teclado
                     } catch (Exception e) {
                     }
                     try {
-                        out.writeUTF(texto);
+                        out.writeUTF(texto); // escreve
                     } catch (SocketException e) {
-                        System.out.println("O Socket Servidor fechou" + e.getMessage());
+                        System.out.println("A conectar-se a outro servidor...");
                         return "TROCA";
                     }
                 }
-            } 
+            }
             else if (data.compareToIgnoreCase("NAO") == 0) { // não consegue ligar-se ao servidor
                 str = "TROCA";
             }
@@ -157,44 +161,79 @@ public class Cliente {
 }
 
 class Receiver extends Thread {
-	Stack <Integer> stack = new Stack <Integer>();
+	ArrayList <Integer> listaOperacoes = new ArrayList <Integer>();
     DataInputStream in;
-    
+    DataOutputStream out;
     // dados gravados no cliente em caso de falha de rede
-    int userID;
+    int userID=-1;
 
-    public Receiver(DataInputStream ain) {
+    public Receiver(DataInputStream ain, DataOutputStream out) {
         this.in = ain;
+        this.out = out;
     }
+    
+    
 
     //=============================
     public void run() {
         while (true) {
             // READ FROM SOCKET
             try {
-                String data = in.readUTF();
-                // DISPLAY WHAT WAS READ
+                String data = in.readUTF(); // lê o que foi escrito
+                // TODO: está a dar um problema qualquer de strings e inteiros, ver isto!
                 // acabou de fazer uma operação logo tenho de a gravar
-                /*if (data.compareToIgnoreCase("OPERACAO")==0) {
-                	System.out.println("A gravar a operacao");
-                	int opcao = Integer.parseInt(in.readUTF());
-                	stack.push(opcao);  acrescenta login à lista de operações
-                	if (opcao==1 || opcao==2) {  servidor tem de enviar o userID
-                		userID=Integer.parseInt(in.readUTF());  ver como
+             /*
+                if (data.compareToIgnoreCase("OPERACAO")==0) {
+                	//System.out.println("\nEntrei");
+                	String opcao=in.readUTF();
+                	System.out.println("()"+opcao);
+                	int operacao=Integer.parseInt(opcao);
+                	
+                	if (listaOperacoes.isEmpty()) {
+                		listaOperacoes.add(operacao);
                 	}
+                	else {
+	                	// quando faz login/regista, tenho o id do user
+	                	if ((listaOperacoes.get(0) == 1 || listaOperacoes.get(0) == 2) && userID==-1) {
+                			// obtenho o userID
+                    		userID=operacao;
+                    	}
+	                	//já fez login
+	                	else if (userID!=-1) {
+	                		listaOperacoes.add(operacao);
+	                		
+	                	}
+                	}
+                }
+                //remove a operação
+                else if (data.compareToIgnoreCase("DESFAZ")==0) {
                 	
-                	
-                }*/
-                	System.out.println("> " + data);
+                }
+                
+                else if (data.compareToIgnoreCase("NOVASESSAO")==0) {
+                	int i;
+                	System.out.println("Alerta nova sessao!");
+                	if (!listaOperacoes.isEmpty()) {
+                		
+	                	for (i=0;i<listaOperacoes.size();i++) {
+	                		//System.out.println("Recebo"+in.readUTF());
+	                		String operacao = Integer.toString(listaOperacoes.get(i));
+	                		out.writeUTF(operacao);
+	                	}
+                	}
+                }
+                
+                else*/
+                	System.out.println("> " + data); // print o que o serv. escreveu
             } catch (SocketException e) {
-                System.out.print("O Socket Servidor fechou"); //Caso o socket de conecção ao cliente se fechar este imprime o erro
+                //System.out.print("O Socket Servidor fechou"); //Caso o socket de conecção ao cliente se fechar este imprime o erro
                 break;
             } catch (Exception e) {
                 System.out.println("Sock:" + e.getMessage());
                 break;	
             }
         }
-        System.out.println("Fim.");
+        //System.out.println("Fim.");
 
     }
 }
