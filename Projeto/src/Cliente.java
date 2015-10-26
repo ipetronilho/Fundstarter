@@ -57,6 +57,12 @@ public class Cliente {
         int i, j, fail_counter = 0;
         String msg = "";
         
+        // INÍCIO
+        
+        
+        
+        // FIM
+        
 
         while (true) { // alterna constantemente entre servidores para se ligar
         	
@@ -99,7 +105,7 @@ public class Cliente {
         Socket s = null;
         String data;
         // regista as operações
-
+        
         try {
             System.out.println("\nHost é '" + serverAddress + "' e socket" + serversocket);
             try {
@@ -180,10 +186,9 @@ class Receiver extends Thread {
             // READ FROM SOCKET
             try {
                 String data = in.readUTF(); // lê o que foi escrito
-                // TODO: está a dar um problema qualquer de strings e inteiros, ver isto!
                 // acabou de fazer uma operação logo tenho de a gravar
-             /*
-                if (data.compareToIgnoreCase("OPERACAO")==0) {
+             
+                /*if (data.compareToIgnoreCase("OPERACAO")==0) {
                 	//System.out.println("\nEntrei");
                 	String opcao=in.readUTF();
                 	System.out.println("()"+opcao);
@@ -226,6 +231,7 @@ class Receiver extends Thread {
                 else*/
                 	System.out.println("> " + data); // print o que o serv. escreveu
             } catch (SocketException e) {
+            	guardaOperacoes();
                 //System.out.print("O Socket Servidor fechou"); //Caso o socket de conecção ao cliente se fechar este imprime o erro
                 break;
             } catch (Exception e) {
@@ -235,5 +241,19 @@ class Receiver extends Thread {
         }
         //System.out.println("Fim.");
 
+    }
+    
+    public void guardaOperacoes() {
+    	System.out.println("Vou guardar!");
+    	
+        try {
+        	FileOutputStream fout = new FileOutputStream("operacoes/opcoes.txt");
+            ObjectOutputStream objout = new ObjectOutputStream(fout);
+			objout.writeObject(this.listaOperacoes);
+			objout.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} 
+        
     }
 }

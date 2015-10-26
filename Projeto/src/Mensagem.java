@@ -4,11 +4,11 @@ import java.util.HashMap;
 public class Mensagem {
 	int idUser;
 	int idProjeto;
-	String mensagem;
+	String comentario;
 	
 	public Mensagem(int idUser, int idProjeto, String mensagem) {
 		this.idUser=idUser;
 		this.idProjeto=idProjeto;
-		this.mensagem=mensagem;
+		this.comentario=mensagem;
 	}
 }

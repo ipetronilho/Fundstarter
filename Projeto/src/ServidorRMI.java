@@ -39,7 +39,7 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 			
 			// TODO: arraylist IDs das recompensas etc?
 			
-			//servRMI.iniciaDados(servRMI);
+			servRMI.iniciaDados(servRMI);
 			servRMI.carregaFicheiro();
 			
 			//servRMI.guardaFicheiro();
@@ -59,7 +59,8 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 	/* inicializa os dados iniciais */
 	synchronized public void iniciaDados(ServidorRMI servRMI) throws IOException {
 		Utilizador user1 = new Utilizador("Primeiro", "passe1", 80);
-		user1.id=bd.listaUtilizadores.size()-1;
+		//user1.id=bd.listaUtilizadores.size()-1;
+		user1.id=bd.listaUtilizadores.size();
 		
 		Calendar dataInicial = new GregorianCalendar(2012, Calendar.MAY, 17);
 		Calendar dataFinal = new GregorianCalendar(2015, Calendar.NOVEMBER, 18);
@@ -115,7 +116,8 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 	/* adiciona um utilizador e devolve o seu ID */
 	synchronized public int registaConta(String nomeUser, String password) {
 		float saldoDefault=100;
-		int userID = bd.listaUtilizadores.size()-1;
+		//int userID = bd.listaUtilizadores.size()-1;
+		int userID = bd.listaUtilizadores.size();
 		Utilizador user = new Utilizador(nomeUser, password, saldoDefault);
 		user.setId(userID); // id do user é a sua posição na lista de users
 		
@@ -428,7 +430,58 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 		proj.listaRecompensas.remove(rec);
 		
 	}
+	/* OPERAÇÕES DE INBOX */
+	synchronized public void adicionaMensagem(int userID, int projID, String mensagem) {
+		Projeto proj = procuraProjetoID(projID);
+		Mensagem mens = new Mensagem(userID, projID, mensagem);
+		ArrayList <Mensagem> listaM = new ArrayList <Mensagem>();
+		if (proj.inbox.get(userID)!=null) {
+			listaM = proj.inbox.get(userID);
+		}
+		listaM.add(mens);
+		proj.inbox.put(userID, listaM);
+		
+	}
+	// TODO: hashmap no projeto faz corresponder user a arraylist de mensagens.
+	// para adicionar uma mensagem basta ir à arraylist na hashmap e fazer lista.add(mensagem)
+	// para responder a mesma coisa
+	public String consultaMensagens(int projID) {
+		Projeto proj = procuraProjetoID(projID);
+		String str="";
+		int userID;
+		int j=0;
+		ArrayList <Mensagem> listaMens;
+		Set<Entry<Integer, ArrayList<Mensagem>>> set = proj.inbox.entrySet();
+		Iterator<Entry<Integer, ArrayList<Mensagem>>> i= set.iterator();
+		str=str.concat("Mensagens:\n");
+		while (i.hasNext()) {
+			Map.Entry <Integer, ArrayList<Mensagem>> mentry = (Entry<Integer, ArrayList<Mensagem>>) i.next();
+			userID = (int) mentry.getKey();
+			listaMens = (ArrayList<Mensagem>) mentry.getValue();
+			
+			str = str.concat("["+bd.listaUtilizadores.get(userID).nome+"]:(id="+bd.listaUtilizadores.get(userID).id+")\n");
+			for (j=0;j<listaMens.size();j++) { // se foi o admin a escrever a resposta então marco
+				System.out.println("Comparo"+listaMens.get(j).idUser+" com "+proj.admin.id);
+				if (listaMens.get(j).idUser==proj.admin.id) {
+					
+					str=str.concat("A: ");
+				}
+				str = str.concat(listaMens.get(j).comentario+"\n");
+			}
+			
+		}
+		return str;
+	}
 
+	// admin responde a mensagens
+	synchronized public void respondeMensagens(int adminID, int userID, int projID, String mensagem) {
+		Projeto proj = procuraProjetoID(projID);
+		Mensagem mens = new Mensagem(adminID, projID, mensagem);
+		ArrayList <Mensagem> listaM = proj.inbox.get(userID);
+		listaM.add(mens);
+		proj.inbox.put(userID, listaM);
+	}
+	
 	/* AUXILIARES */
 	public int verificaAdministrador(int userID, int projID) {
 		int i=0;

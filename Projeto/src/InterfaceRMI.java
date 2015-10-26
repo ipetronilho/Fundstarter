@@ -33,6 +33,13 @@ public interface InterfaceRMI extends Remote {
 	public boolean escolherRecompensa(int userID, int projID, float dinheiro, int indexRecompensa) throws RemoteException;
 	public void removeRecompensa(int userID, int projID, String nome) throws RemoteException;
 	
+	/* OPERAÇÕES DE INBOX */
+	
+	public void adicionaMensagem(int userID, int projID, String mensagem)throws RemoteException;
+	public String consultaMensagens(int projID) throws RemoteException;
+	public void respondeMensagens(int adminID, int userID, int projID, String mensagem) throws RemoteException;
+	
+	
 	public int verificaAdministrador(int userID, int projID) throws RemoteException;
 
 	// arranjar forma de responder aos backers

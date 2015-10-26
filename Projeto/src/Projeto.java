@@ -35,6 +35,7 @@ public class Projeto implements Serializable {
 	HashMap <Integer, Float> listaDoacoes = new HashMap<Integer, Float>();
 	
 	//inbox que liga os IDs dos users às mensagens que eles escrevem
+	HashMap <Integer, ArrayList<Mensagem>> inbox = new HashMap <Integer, ArrayList<Mensagem>>();
 	 
 	
 	
@@ -45,11 +46,9 @@ public class Projeto implements Serializable {
 		this.id=id;
 		this.dataInicial=dataInicial;
 		this.dataFinal=dataFinal;
-		//System.out.println("Dia do mes: "+dataInicial.get(dataInicial.DAY_OF_MONTH)); - check!
-		// pedir o gregorianCalendar e depois verificar validade
 	}
 	
-	// devolve 1 se for actual e 0 se for antigo
+	
 	public boolean verificaValidade() {
 		Calendar diadeHoje= new GregorianCalendar();
 		return (dataFinal.compareTo(diadeHoje)>=0);	// true: actual. false: antigo

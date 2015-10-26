@@ -448,6 +448,46 @@ class ConexaoTCP extends Thread {
 					            		
 					            	}
 					            	
+					            	else if (opcao==11) {
+					            		out.writeUTF("Nome do projeto:");
+					            		String projNome = in.readUTF();
+					            		int projID = intRMI.procuraProjeto(projNome);
+					            		int checkAdmin = intRMI.verificaAdministrador(userID, projID);
+					            		int index;
+					            		do {
+						            		out.writeUTF("1-Deixar mensagem");
+						            		out.writeUTF("2-Consultar mensagens");
+						            		out.writeUTF("3-Responder a mensagem [Apenas admins]");
+						            		out.writeUTF("0-Sair");
+						            		data=in.readUTF();
+						            		opcao=Integer.parseInt(data);
+						            		
+						            		if (opcao==1) {
+						            			out.writeUTF("Mensagem:");
+						            			String mensagem = in.readUTF();
+						            			
+						            			intRMI.adicionaMensagem(userID, projID, mensagem);
+						            		}
+						            		// TODO: mostrar apenas aquelas que são mandadas pelo user
+						            		else if (opcao==2) {
+					            				resposta = intRMI.consultaMensagens(projID);
+					            				out.writeUTF(resposta);
+						            		}
+						            		else if (opcao==3) {
+						            			if (checkAdmin==1) {
+						            				out.writeUTF("Responder a que utilizador? (inserir ID)");
+						            				resposta=in.readUTF();
+						            				int id=Integer.parseInt(resposta);
+						            				out.writeUTF("Resposta: ");
+						            				String mensagem=in.readUTF();
+						            				
+						            				intRMI.respondeMensagens(userID, id, projID, mensagem);
+						            				
+						            			}
+						            		}
+					            		}while(opcao!=0);
+					            	}
+					            	
 					            	//desfazCliente(out); // desfaz a operação que acabou de fazer
 					            	
 					            }
