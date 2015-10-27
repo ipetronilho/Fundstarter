@@ -113,7 +113,10 @@ public class Cliente {
                 InputStreamReader input = new InputStreamReader(System.in);
                 BufferedReader reader = new BufferedReader(input);
                 
-                
+                if (nomeUser.compareToIgnoreCase("")!=0) {
+                	leFicheiroLogin(out,nomeUser);
+                }
+                leFicheiroBackup(out, nomeUser);
                 while (true) {
                     try {
                         texto = reader.readLine(); // lê de teclado
@@ -122,8 +125,14 @@ public class Cliente {
                     try {
                         out.writeUTF(texto); // escreve
                     } catch (SocketException e) {
+                    
+                    	
                         System.out.println("A conectar-se a outro servidor...");
-                        setNomeUser(MyThread.getNomeUser());
+                        setNomeUser(MyThread.getNomeUser());// fica com o username
+                        
+                        salvaFicheiroBackup(nomeUser);
+                        guardaFicheiro(texto, nomeUser);
+                        
                         return "TROCA";
                     }
                 }
@@ -148,22 +157,64 @@ public class Cliente {
 
     }
     
-    public static void leFicheiro(DataOutputStream out, String nomeUser) {
-    	// The name of the file to open.
+public static void guardaFicheiro(String st, String username) {
+    	String filepath;
+		filepath="ficheiros/"+username+"_backup.txt";
+    	System.out.println("Acrescento "+st);
+		try {
+			PrintWriter writer = new PrintWriter(new BufferedWriter(new FileWriter(filepath, true)));
+		    writer.println(st);
+		    writer.close();
+			
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    	
+    }
+    
+    
+    public static boolean ficheiroVazio(String username){
+		BufferedReader br; 
+		try {
+			br= new BufferedReader(new FileReader("ficheiros/"+username+"_infologin.txt"));  
+			if (br.readLine() == null) {
+				br.close();
+			    return true;
+			}
+			br.close();
+			
+		} catch (FileNotFoundException e1) {
+			e1.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		return false;
+    }
+    
+    /* lê login */
+    public static void leFicheiroLogin(DataOutputStream out, String nomeUser) {
         String fileName = "ficheiros/"+nomeUser+"_infologin.txt";
-
-        // This will reference one line at a time
         String line = null;
+        System.out.println("--LE FICHEIRO LOGIN --");
+        System.out.println("User e "+nomeUser);
+        // VER: quando ele chega aqui, já não há nada no ficheiro
 
         try {
             FileReader fileReader = new FileReader(fileName);
             BufferedReader bufferedReader = new BufferedReader(fileReader);
-            out.writeUTF("1"); // login
-            while((line = bufferedReader.readLine()) != null) { // escreve os comandos que estavam perdidos
+            out.writeUTF("1"); // login - só aqui entra se nomeUser!="" logo já fez login
+            while((line = bufferedReader.readLine()) != null) { // lê user e passw
                 out.writeUTF(line);
-            }   
-
-            bufferedReader.close();         
+                System.out.println("Vou enviar "+line);
+            }
+            bufferedReader.close();
+                
         }
         catch(FileNotFoundException ex) {
             System.out.println("Unable to open file '" + fileName + "'");                
@@ -173,6 +224,85 @@ public class Cliente {
 
         }
     	
+    }
+    
+    public static void leFicheiroBackup(DataOutputStream out, String nomeUser) {
+    	System.out.println("--LE FICHEIRO BACKUP --");
+    	if(nomeUser.compareToIgnoreCase("")!=0) {
+	        if (!ficheiroVazio(nomeUser)) {
+		    	String fileName = "ficheiros/"+nomeUser+"_backup.txt";
+		        String line = null;
+		
+		        try {
+		        	/* lê operações */
+		            FileReader fileReader = new FileReader(fileName);
+		            BufferedReader bufferedReader = new BufferedReader(fileReader);
+		            while((line = bufferedReader.readLine()) != null) {
+		            	System.out.println("Vou enviar "+line);
+		                out.writeUTF(line);
+		            }
+		            bufferedReader.close();
+		                
+		        }
+		        catch(FileNotFoundException ex) {
+		            System.out.println("Unable to open file '" + fileName + "'");                
+		        }
+		        catch(IOException ex) {
+		            System.out.println("Error reading file '" + fileName + "'");                  
+		
+		        }
+	        }
+	    }
+    }
+    public static void salvaFicheiroBackup(String st) {
+    	String filePathOperacao="ficheiros/"+st+"_operacao.txt";
+    	String filePathBackup="ficheiros/"+st+"_backup.txt";
+    	//apaga backup
+    	
+    	apagaConteudoFicheiro(st,2); // apaga o conteudo do backup, se ja existir
+    	
+    	BufferedReader br;
+		try {
+			
+			PrintWriter writer = new PrintWriter(new BufferedWriter(new FileWriter(filePathBackup, true)));
+		    
+			br = new BufferedReader(new FileReader(filePathOperacao));
+			String linha=br.readLine();
+	    	while(linha!=null) { // escreve no ficheiro de Backup o que lê de Operação
+	    		System.out.println("Na _operacao estava: "+linha);
+	    		writer.println(linha);
+	    		linha=br.readLine();
+	    	}
+	    	br.close();
+	    	writer.close();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}  
+    	
+		apagaConteudoFicheiro(st,0); // apaga as Operações
+    }
+    
+    public static void apagaConteudoFicheiro(String st, int tipo) {
+    	String filepath="";
+    	if (tipo==0)
+    		filepath="ficheiros/"+st+"_operacao.txt";
+		else if (tipo==1)
+			filepath="ficheiros/"+st+"_infologin.txt";
+		else if (tipo==2)
+			filepath="ficheiros/"+st+"_backup.txt";
+    		
+		try {
+			PrintWriter writer = new PrintWriter(filepath, "UTF-8");
+			
+		    writer.close();
+			
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		}
     }
     
 }
@@ -204,8 +334,6 @@ class Receiver extends Thread {
 	                nomeUser=in.readUTF(); // capta o username
 	                //setNomeUser(nomeUser);
 	                System.out.println("Captei o username!! é "+getNomeUser());
-	               /* if(nomeUser.compareToIgnoreCase("")!=0)
-	                	leFicheiro(out, nomeUser);*/
 	               
             	}
                 else
@@ -213,6 +341,7 @@ class Receiver extends Thread {
             } catch (SocketException e) {
             	
                 System.out.print("O Socket Servidor fechou"); //Caso o socket de conecção ao cliente se fechar este imprime o erro
+                
                 break;
             } catch (Exception e) {
                 System.out.println("Sock:" + e.getMessage());
@@ -220,7 +349,8 @@ class Receiver extends Thread {
             }
         }
         //System.out.println("Fim.");
-
+        
     }
+    
 
 }

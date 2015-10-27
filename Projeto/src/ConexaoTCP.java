@@ -56,12 +56,14 @@ class ConexaoTCP extends Thread {
         }catch(IOException e){System.out.println("Connection:" + e.getMessage());}
     }
     
-    public void apagaConteudoFicheiro(int login) {
-    	String filepath;
-    	if (login==1)
-    		filepath="ficheiros/infologin.txt";
-		else
-			filepath="ficheiros/operacao.txt";
+    public void apagaConteudoFicheiro(String st, int tipo) {
+    	String filepath="";
+    	if (tipo==0)
+    		filepath="ficheiros/"+st+"_operacao.txt";
+		else if (tipo==1)
+			filepath="ficheiros/"+st+"_infologin.txt";
+		else if (tipo==2)
+			filepath="ficheiros/"+st+"_backup.txt";
     		
 		try {
 			PrintWriter writer = new PrintWriter(filepath, "UTF-8");
@@ -75,8 +77,28 @@ class ConexaoTCP extends Thread {
 		}
     }
     
-    
+
 	public boolean ficheiroVazio(String st){
+		BufferedReader br; 
+		try {
+			br= new BufferedReader(new FileReader("ficheiros/"+st+"_operacao.txt"));  
+			if (br.readLine() == null) {
+				br.close();
+			    return true;
+			}
+			br.close();
+			
+		} catch (FileNotFoundException e1) {
+			e1.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		return false;
+    }
+    // TODO: ficheiro com login vazio nao estava a funcionar, tive de aldrabar e
+	//meter "primeiro e passe1
+	public boolean ficheiroLoginVazio(String st){
 		BufferedReader br; 
 		try {
 			br= new BufferedReader(new FileReader("ficheiros/"+st+"_infologin.txt"));  
@@ -95,7 +117,7 @@ class ConexaoTCP extends Thread {
 		return false;
     }
     
-public void guardaFicheiroLogin(String st, String username) {
+	public void guardaFicheiroLogin(String st, String username) {
     	String filepath;
     	
     	filepath="ficheiros/"+username+"_infologin.txt";
@@ -118,8 +140,6 @@ public void guardaFicheiroLogin(String st, String username) {
 
     public void guardaFicheiro(String st, String username) {
     	String filepath;
-    	
-    	
 		filepath="ficheiros/"+username+"_operacao.txt";
     	
 		try {
@@ -146,6 +166,8 @@ public void guardaFicheiroLogin(String st, String username) {
         InterfaceRMI intRMI;
         int checkLogin=0;
         String nomeUser="";
+        int guardaDados=0;
+        int guardaDadosLogin=0;
         
         int verif;
         String dados="";
@@ -176,14 +198,13 @@ public void guardaFicheiroLogin(String st, String username) {
 				                //an echo server
 					            if (checkLogin == 0) {
 					            	/* ---- MENU ---- */
-					            	// TODO: resumeStatus() 
+					            	// TODO: sair a 0 que mete todos os ficheiros em branco
 					                out.writeUTF("Bem vindo! Seleccione uma opcao! 1-Login; 2-Registar; 3-Consultar dados");
 					                
 					                String data = in.readUTF();
 					                int opcao=Integer.parseInt(data);
 					                //System.out.println("Recebi "+data);
 					                
-					                int guardaDados=0;
 				                	
 					                
 					                
@@ -197,8 +218,10 @@ public void guardaFicheiroLogin(String st, String username) {
 					                	out.writeUTF(nomeUser);
 					                	//--
 					                	// só guarda se for a 1ª vez que está a fazer login
-					                	if (ficheiroVazio(nomeUser))
+					                	if (ficheiroLoginVazio(nomeUser)) {
+					                		System.out.println("Vou ter de guardar os dados");
 					                		guardaDados=1;
+					                	}
 					                	if(guardaDados==1)
 					                		guardaFicheiroLogin(nomeUser, nomeUser);
 					                	
@@ -283,11 +306,12 @@ public void guardaFicheiroLogin(String st, String username) {
 					            	out.writeUTF("10-Remover recompensas a um projeto");
 					            	out.writeUTF("11-Consultar inbox de um projeto"); // TODO
 					            	out.writeUTF("0-logout");
-					            	
-					            	out.writeUTF("Cheguei aqui!!");
+					            
 					            	String data = in.readUTF();
 					            	int opcao=Integer.parseInt(data);
-					            	guardaFicheiro(data,nomeUser);
+					            	out.writeUTF("A opcao que escolhi e "+opcao);
+					            	//if (ficheiroVazio(nomeUser))
+					            		guardaFicheiro(data,nomeUser);
 					            	
 					            	if (opcao == 0) {
 					            		out.writeUTF("A sair...");
@@ -594,7 +618,7 @@ public void guardaFicheiroLogin(String st, String username) {
 						            		}
 					            		}while(opcao!=0);
 					            	}
-					            	apagaConteudoFicheiro(0);
+					            	apagaConteudoFicheiro(nomeUser, 0);
 					            }
 				                
 				            }
@@ -611,5 +635,8 @@ public void guardaFicheiroLogin(String st, String username) {
 		} catch (NumberFormatException e2) {
 			System.out.println("Formato invalido! " + e2);
 		}
+        finally {
+        	
+        }
     }
 }
