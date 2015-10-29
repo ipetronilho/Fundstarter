@@ -43,20 +43,22 @@ public class ConexaoUDP extends Thread {
             if (id == 2) {
                 aSocket = new DatagramSocket();
                 while (true) {
-
+                	
+                	// 2 envia a data do sistema a 1
                     texto = "" + System.currentTimeMillis();
                     byte[] m = texto.getBytes();
                     InetAddress aHost = InetAddress.getByName(Host);
                     DatagramPacket request = new DatagramPacket(m, m.length, aHost, serverPort);
                     aSocket.send(request);
 
+                    // 2 recebe a data do sistema que enviou a 1
                     byte[] buffer = new byte[1000];
                     DatagramPacket reply = new DatagramPacket(buffer, buffer.length);
-
+                    
                     aSocket.receive(reply);
                     texto = new String(reply.getData(), 0, reply.getLength());
                     if (texto.length() > 0 && texto != null) {
-                        timestamp = Long.parseLong(texto); // tempo recebido
+                        timestamp = Long.parseLong(texto); 
                         updateEstado(timestamp);
                     } else {
                         setEstado("baixo");
@@ -75,22 +77,22 @@ public class ConexaoUDP extends Thread {
                     byte[] buffer = new byte[1000];
                     DatagramPacket reply = new DatagramPacket(buffer, buffer.length);
 
-                    // recebe a resposta
+                    // recebe a data do sistema
                     aSocket.receive(reply);
                     texto = new String(reply.getData(), 0, reply.getLength());
                     
-                    // envia a data do sistema
+                    // regista a data da ultima msg
                     if (texto.length() > 0 && texto != null) {
                         timestamp = Long.parseLong(texto);
                         updateEstado(timestamp);
                     } 
                     
-                    //não recebe
+                    //não recebe - está em baixo
                     else { 
                         setEstado("baixo");
                     }
 
-                    
+                    // envia a data do sistema
                     texto = "" + System.currentTimeMillis();
                     buffer = texto.getBytes();
                     DatagramPacket request = new DatagramPacket(buffer, buffer.length, reply.getAddress(), reply.getPort());
@@ -119,6 +121,7 @@ public class ConexaoUDP extends Thread {
         }
     }
 
+    // compara a data actual com a última a ser registada
     private void updateEstado(long timestamp) {
         setLastTimestamp(timestamp);
         // está vivo se os pedidos demoram menos de 5s a chegar

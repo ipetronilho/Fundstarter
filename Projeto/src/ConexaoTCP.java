@@ -9,12 +9,18 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
 import java.net.Socket;
+import java.rmi.ConnectException;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
+import java.rmi.RMISecurityManager;
+import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
+import java.util.Timer;
+import java.util.TimerTask;
 
 
 //= Thread para tratar de cada canal de comunicação com um cliente
@@ -189,10 +195,24 @@ class ConexaoTCP extends Thread {
 		            // thread acorda de hora a hora e Verifica a Validade dos projetos
 		            
 		            while(verif==0){
+		            	/* TODO: sempre que acabo uma sessão (cliente desconecta-se,
+		            	 * temos de apagar todos os ficheiros */
 		            	
+		            	
+		                //Timer timer = new Timer();
+		            	//timer.schedule(MyThread, 1000, 36000000);			// executa a thread a cada hora
+		            	
+		            	
+		            	/* tenho de ler o ficheiro Properties */
 		            	// TODO: mudar Naming...
+		            	//System.getProperties().put("java.security.policy","policy.all") ;
+		            	// System.setSecurityManager(new RMISecurityManager()); 
+
+		            	
 						intRMI = (InterfaceRMI) Naming.lookup("rmi://localhost:7000/benfica");
-						int userID=-1; 				// o ID do user é a posição na arrayList 
+						ThreadValidade MyThread = new ThreadValidade(intRMI); 
+						MyThread.start();
+						int userID=-1; 				 
 						
 				            while(true){
 				                //an echo server
@@ -382,6 +402,8 @@ class ConexaoTCP extends Thread {
 					            		}while(id!=-1);
 					            		
 					            		try {
+					            			out.writeUTF("Descricao:");
+					            			String descricao = in.readUTF();
 						            		// TODO: proteção - strings
 						            		out.writeUTF("Valor objetivo:");
 						            		String valor=in.readUTF();
@@ -415,7 +437,7 @@ class ConexaoTCP extends Thread {
 						            		dataFinal.set(Calendar.DAY_OF_MONTH, dia);
 						            		// Calendar user = new GregorianCalendar(2012, Calendar.MAY, 17);
 						            		
-						            		intRMI.criaProjeto(userID, nome, valor_objetivo, dataInicial, dataFinal);
+						            		intRMI.criaProjeto(userID, nome, valor_objetivo, dataFinal, descricao);
 						            		
 						            		
 					            		}catch(NumberFormatException e) {
@@ -449,15 +471,18 @@ class ConexaoTCP extends Thread {
 					            		float dinheiro;
 					            		int projID=-1;
 					            		
+					            		out.writeUTF("1-Listar os projetos existentes;0-Não listar");
+				            			data = in.readUTF();
+				            			opcao=Integer.parseInt(data);
+				            			if (opcao==1) {
+				            				resposta = intRMI.listaProjetosActuais();
+					                		out.writeUTF(resposta);
+				            			}
+					            		
 					            		// procura o projeto
 					            		do {
-					            			out.writeUTF("1-Listar os projetos existentes;0-Não listar");
-					            			data = in.readUTF();
-					            			opcao=Integer.parseInt(data);
-					            			if (opcao==1) {
-					            				resposta = intRMI.listaProjetosActuais();
-						                		out.writeUTF(resposta);
-					            			}
+					            			
+					            			
 						            		out.writeUTF("Insira o nome do Projeto a doar:");
 						            		String nome = in.readUTF();
 						            		guardaFicheiro(nome,nomeUser);
@@ -497,13 +522,19 @@ class ConexaoTCP extends Thread {
 							            		boolean sucesso = intRMI.escolherRecompensa(userID, projID, dinheiro, indexRecompensa);
 							            		if (sucesso) {
 							            			out.writeUTF("Recompensa adicionada.");
-							            			out.writeUTF("Votar?");
-							            			
 							            		}
 							            		else
 							            			out.writeUTF("Recompensa falhou.\n");
 							            		// TODO: acrescentar aqui o caso de ele querer 2+ recompensas 
 						            		}
+						            		/*
+						            		out.writeUTF("Votar?");
+						            		intRMI.imprimeVotos(projID);
+						            		
+						            		data = in.readUTF();
+							                opcao=Integer.parseInt(data);
+						            		
+						            		intRMI.escolheVoto(userID, projID, opcao;*/
 					            		}
 					            		else
 					            			out.writeUTF("Saldo insuficiente.");
@@ -593,14 +624,14 @@ class ConexaoTCP extends Thread {
 						            		if (opcao==1) {
 						            			out.writeUTF("Mensagem:");
 						            			String mensagem = in.readUTF();
-						            			guardaFicheiro(mensagem,nomeUser);
+						            			//guardaFicheiro(mensagem,nomeUser);
 						            			
 						            			intRMI.adicionaMensagem(userID, projID, mensagem);
 						            		}
 						            		// TODO: mostrar apenas aquelas que são mandadas pelo user?
 						            		else if (opcao==2) {
 					            				resposta = intRMI.consultaMensagens(projID);
-					            				guardaFicheiro(resposta,nomeUser);
+					            				//guardaFicheiro(resposta,nomeUser);
 					            				out.writeUTF(resposta);
 						            		}
 						            		else if (opcao==3) {
@@ -625,18 +656,57 @@ class ConexaoTCP extends Thread {
 				        }
 		        }
             }
-        }catch(EOFException e){
+        }
+        catch(ConnectException e) {
+	        	try {
+						intRMI = (InterfaceRMI) Naming.lookup("rmi://localhost:7000/benfica");
+					} catch (MalformedURLException e1) {
+					} catch (RemoteException e1) {
+					} catch (NotBoundException e1) {
+						e1.printStackTrace();
+					}
+		        	System.out.println("Apanhei rmi");
+	        	
+        }
+        catch(EOFException e){
         	System.out.println("EOF:" + e);
-	    }catch(IOException e){
+	    }
+        catch(IOException e){
 	    	System.out.println("IO:" + e);
-		} catch (NotBoundException e1) {
+		} 
+        catch (NotBoundException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
-		} catch (NumberFormatException e2) {
+		} 
+        catch (NumberFormatException e2) {
 			System.out.println("Formato invalido! " + e2);
 		}
         finally {
         	
         }
     }
+}
+
+class ThreadValidade extends Thread{
+	InterfaceRMI intRMI;
+	
+	public ThreadValidade(InterfaceRMI intRMI) {
+		this.intRMI=intRMI;
+	}
+	
+	public void run() {
+		try {
+			sleep(60000);
+			System.out.println("Ola da thread!");
+			intRMI.updateValidadeProjetos();
+			Thread.sleep(10000);
+		} catch (RemoteException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} // dorme 1 minuto
+		//dorme 1 hora
+	}
 }

@@ -21,9 +21,11 @@ public interface InterfaceRMI extends Remote {
 	public String procuraRecompensa(Projeto proj, int userID) throws RemoteException;
 	public String listaRecompensas(int projID) throws RemoteException;
 	public String imprimeDetalhesProjeto(int projID) throws RemoteException;
+	//public void updateValidadeProjetos(Projeto proj) throws RemoteException;
+	public String imprimeVotos(int projID) throws RemoteException;
 	
 	/* OPERAÇÕES DE PROJETOS */
-	public void criaProjeto(int userID, String nome, float valor_objetivo, Calendar dataInicial, Calendar dataFinal)throws RemoteException;
+	public void criaProjeto(int userID, String nome, float valor_objetivo, Calendar dataFinal, String descricao) throws RemoteException;
 	public boolean validaDoacao(int userID, float dinheiro) throws RemoteException;
 	public void doarDinheiro(int userID, int ProjID, float dinheiro) throws RemoteException;
 	public void eliminaProjeto(int userID, int projID) throws RemoteException;
@@ -32,6 +34,9 @@ public interface InterfaceRMI extends Remote {
 	public void addRecompensa(int userID, int projID, String nome, float valor) throws RemoteException;
 	public boolean escolherRecompensa(int userID, int projID, float dinheiro, int indexRecompensa) throws RemoteException;
 	public void removeRecompensa(int userID, int projID, String nome) throws RemoteException;
+	
+	/* VOTOS */
+	public void escolheVoto(int userID, int projID, int index) throws RemoteException;
 	
 	/* OPERAÇÕES DE INBOX */
 	
@@ -44,4 +49,7 @@ public interface InterfaceRMI extends Remote {
 
 	// arranjar forma de responder aos backers
 	// fim do projeto
+	
+	
+	public void updateValidadeProjetos() throws RemoteException;
 }

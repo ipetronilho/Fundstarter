@@ -15,16 +15,17 @@ public class Servidor1{
         
         String host = "localhost"; // host
         // PARTE UDP
-        ConexaoUDP cudp = new ConexaoUDP(host, serv_id);
+        ConexaoUDP cudp = new ConexaoUDP(host, serv_id); // ping-pong
         ServerSocket listenSocket=null;
         try {
 			Thread.sleep(1000);
 		} catch (InterruptedException e1) {
 			// TODO Auto-generated catch block
+			
 			e1.printStackTrace();
 		}
         
-     
+        // se o servidor for o 2º e o primeiro estiver vivo
         if (serv_id == 2 && cudp.estaVivo() == true) { 
             Primario = false;
         } else { 
@@ -34,7 +35,7 @@ public class Servidor1{
         // parte TCP
         try{
         	listenSocket = new ServerSocket(6000); // mudar
-            System.out.println("Ligo-me ao " + serverSockets[serv_id - 1]);
+            //System.out.println("Ligo-me ao " + serverSockets[serv_id - 1]);
             
             while(true) {
                 Socket clientSocket = listenSocket.accept(); // BLOQUEANTE
@@ -43,6 +44,7 @@ public class Servidor1{
                 new ConexaoTCP(clientSocket, numero, tentaLigacao(cudp), lista);
             }
         }  catch(IOException e){
+        	System.out.println("Fui a vida");
         	System.out.println("Listen:" + e.getMessage());
 		}
 }

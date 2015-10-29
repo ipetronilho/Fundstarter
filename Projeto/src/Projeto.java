@@ -25,11 +25,13 @@ public class Projeto implements Serializable {
 	String descricao;
 	String nome;
 	float percentagem;
+	boolean idade; // 0 é aantigo, 1 é novo
 	
-	Calendar dataInicial = new GregorianCalendar();
+	//Calendar dataInicial = new GregorianCalendar();
 	Calendar dataFinal = new GregorianCalendar();
 	// Calendar user = new GregorianCalendar(2012, Calendar.MAY, 17);
 	int id;
+	float valor_final; // valor final que conseguiu atingir
 	
 	// hashmap que liga IDs dos utilizadores backers às doações
 	HashMap <Integer, Float> listaDoacoes = new HashMap<Integer, Float>();
@@ -38,14 +40,15 @@ public class Projeto implements Serializable {
 	HashMap <Integer, ArrayList<Mensagem>> inbox = new HashMap <Integer, ArrayList<Mensagem>>();
 	 
 	
-	
-	public Projeto(Utilizador admin, String nome, float valor_objetivo, int id, Calendar dataInicial, Calendar dataFinal) {
+	// TODO: adicionei agora uma descrição e tenho de pedi-la
+	public Projeto(Utilizador admin, String nome, float valor_objetivo, int id, Calendar dataFinal, String descricao) {
 		this.admin=admin;
 		this.nome=nome;
 		this.valor_objetivo=valor_objetivo;
 		this.id=id;
-		this.dataInicial=dataInicial;
+		this.descricao=descricao;
 		this.dataFinal=dataFinal;
+		this.idade=true;
 	}
 	
 	
@@ -59,7 +62,7 @@ public class Projeto implements Serializable {
 		DecimalFormat df = new DecimalFormat("#.##");
 		float valor_recolhido = getValorRecolhido();
 		percentagem = valor_recolhido/valor_objetivo*100;
-		return "Projeto: "+this.nome+"\nValor Recolhido:"+valor_recolhido+"("+df.format(percentagem)+"%)"+"\nValor objetivo: "+valor_objetivo+"Id: "+id+"\n\n";
+		return "\nProjeto: "+this.nome+"\nDescricao:"+this.descricao+"\nValor Recolhido:"+valor_recolhido+"("+df.format(percentagem)+"%)"+"\nValor objetivo: "+valor_objetivo+"\nData limite:"+imprimeData(this)+"\nId: "+id+"\n\n";
 	}
 	
 	public float getValorRecolhido() {
@@ -75,10 +78,11 @@ public class Projeto implements Serializable {
 		return totalRecolhido;
 	}
 
-	
+	// recompensas, data limite, descrição
 	public String imprimeDetalhes(Projeto proj) {
 		String str="";
-		str=str.concat("Id:"+this.id+"Projeto: "+this.nome+"\nDescricao:"+this.descricao+"\nValor objetivo: "+valor_objetivo+"\n");
+		str=str.concat("Id:"+this.id+"Projeto: "+this.nome+"\nDescricao:"+this.descricao+"\nData Final:"+imprimeData(proj)+"\nValor objetivo: "+valor_objetivo+"\n");
+
 		str = str.concat(imprimeRecompensas(proj));
 		return str;
 	}
@@ -92,11 +96,23 @@ public class Projeto implements Serializable {
 		return str;
 	}
 	
+	public String imprimeData(Projeto proj) {
+		String str="";
+		str=str.concat(proj.dataFinal.get(Calendar.DAY_OF_MONTH)+"/"+proj.dataFinal.get(Calendar.MONTH)+"/"+proj.dataFinal.get(Calendar.YEAR));
+		return str;
+	}
+	
+	public void addDescricao(Projeto proj, String s) {
+		proj.descricao=s;
+	}
+	
 	public void addRecompensa(Projeto proj, Recompensa rec) {
 		proj.listaRecompensas.add(rec);
 	}
 	
-	
+	public void addVoto(Projeto proj, Voto v) {
+		proj.listaVotos.add(v);
+	}
 
 }
 

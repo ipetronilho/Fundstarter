@@ -31,6 +31,7 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 
 		System.setProperty("java.security.policy","file:///urs/lib/jvm/java-7-openjdk-i386/jre/lib/security/java.policy");
         
+		
 		try {
 			ServidorRMI servRMI= new ServidorRMI();
 			// TODO
@@ -40,8 +41,7 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 			// TODO: arraylist IDs das recompensas etc?
 			
 			servRMI.iniciaDados(servRMI);
-			servRMI.carregaFicheiro();
-			
+			//servRMI.carregaFicheiro();
 			//servRMI.guardaFicheiro();
 			
 			System.out.println("Servidor RMI ready.");
@@ -58,34 +58,36 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 	
 	/* inicializa os dados iniciais */
 	synchronized public void iniciaDados(ServidorRMI servRMI) throws IOException {
-		Utilizador user1 = new Utilizador("Primeiro", "passe1", 80);
+		Utilizador user1 = new Utilizador("Primeiro", "passe1", 100);
 		//user1.id=bd.listaUtilizadores.size()-1;
 		user1.id=bd.listaUtilizadores.size();
+		String descricao="Corda que conta o nº de saltos por minuto";
 		
-		Calendar dataInicial = new GregorianCalendar(2012, Calendar.MAY, 17);
-		Calendar dataFinal = new GregorianCalendar(2015, Calendar.NOVEMBER, 18);
-		int idP = contadorIDProjeto.getAndIncrement();
-		Projeto proj1 = new Projeto(user1, "proj", 30, idP, dataInicial, dataFinal);
+		//Calendar dataInicial = new GregorianCalendar(2012, Calendar.MAY, 17);
+		Calendar dataFinal = new GregorianCalendar(2014, Calendar.NOVEMBER, 18);
+		int projID = contadorIDProjeto.getAndIncrement();
+		Projeto proj1 = new Projeto(user1, "FitJump", 2, projID, dataFinal, descricao);
 		
-		Recompensa rec = new Recompensa(proj1, "nomeRecompensa", 5, contadorIDRecompensa.getAndIncrement());
+		Recompensa rec = new Recompensa(proj1, "O nome do apoiante aparece na lista", 5, contadorIDRecompensa.getAndIncrement(), 0);
+		Recompensa rec2 = new Recompensa(proj1, "O apoiante recebe uma unidade de FitJumpingRope", 60, contadorIDRecompensa.getAndIncrement(), 0);
+		Recompensa rec3 = new Recompensa(proj1, "O apoiante recebe duas unidades de FitJumpingRope", 100, contadorIDRecompensa.getAndIncrement(), 0);
+		
+		Voto v = new Voto("vermelho");
+		Voto v2 = new Voto("azul");
 		
 		proj1.addRecompensa(proj1, rec);
-		user1.listaIDsProjeto.add(idP);
+		proj1.addRecompensa(proj1, rec2);
+		proj1.addRecompensa(proj1, rec3);
+		
+		proj1.listaVotos.add(v);
+		proj1.listaVotos.add(v2);
+		
+		user1.listaIDsProjeto.add(projID);
+		
 		
 		bd.listaProjetos.add(proj1);
 		bd.listaUtilizadores.add(user1);
 		servRMI.guardaFicheiro();
-	}
-	
-	public void iniciaContadorRecompensas() {
-		int i,j, max=0;
-		for (i=0;i<bd.listaProjetos.size();i++) {
-			for (j=0;j<bd.listaProjetos.get(i).listaRecompensas.size();j++) {
-				if (bd.listaProjetos.get(i).listaRecompensas.get(j).id>max)
-					max = bd.listaProjetos.get(i).listaRecompensas.get(j).id;
-			}
-		}
-		contadorIDRecompensa.set(max+1);
 	}
 
 	/* CONSULTAR DADOS */
@@ -93,11 +95,11 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 		int i;
 		String str="";
 		for (i=0;i<bd.listaProjetos.size();i++) {
-			if (bd.listaProjetos.get(i).verificaValidade())
-				str.concat("PROJETO\n");
+			if (bd.listaProjetos.get(i).verificaValidade()){
 				str= str.concat(bd.listaProjetos.get(i).imprime());
-				str.concat("--\n");
+				str=str.concat("RECOMPENSAS\n");
 				str = str.concat(listaRecompensas(bd.listaProjetos.get(i).id));
+			}
 		}
 		return str;
 	}
@@ -106,8 +108,11 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 		int i;
 		String str="";
 		for (i=0;i<bd.listaProjetos.size();i++) {
-			if (!bd.listaProjetos.get(i).verificaValidade())
-				str= str.concat(bd.listaProjetos.get(i).imprime());
+			if (!bd.listaProjetos.get(i).verificaValidade()){
+				str= str.concat(bd.listaProjetos.get(i).imprime()); 
+				str=str.concat("RECOMPENSAS\n");
+				str = str.concat(listaRecompensas(bd.listaProjetos.get(i).id));
+			}
 		}
 		return str;
 	}
@@ -122,6 +127,14 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 		user.setId(userID); // id do user é a sua posição na lista de users
 		
 		bd.listaUtilizadores.add(user);
+		
+		try {
+			guardaFicheiro();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 		return userID;
 	}
 	
@@ -214,7 +227,7 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 			idProjeto = (int) mentry.getKey();
 			doacao = (float) mentry.getValue();
 			Projeto proj = procuraProjetoID(idProjeto);
-			
+			if(proj!=null)
 			str = str.concat("Projeto: "+proj.nome+"\nDoacao: "+doacao+"\n");
 			
 		}
@@ -227,13 +240,13 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 		Projeto proj;
 		Recompensa rec;
 		String str="";
-		
-		// cada projeto tem obrigatoriamente de escolher uma recompensa
-		for (i=0;i<bd.listaUtilizadores.get(userID).listaIDsProjeto.size();i++) {
-			proj = procuraProjetoID(bd.listaUtilizadores.get(userID).listaIDsProjeto.get(i));
+
+		for (i=0;i<bd.listaProjetos.size();i++) {
+			proj = bd.listaProjetos.get(i);
 			str = str.concat(procuraRecompensa(proj, userID ));
 			
 		}
+		
 		return str;
 	}
 	
@@ -273,6 +286,10 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 				System.out.println("Vou comparar "+proj.listaRecompensas.get(i).id+" com "+user.listaIDsRecompensas.get(j));
 				if (proj.listaRecompensas.get(i).id == user.listaIDsRecompensas.get(j)) {
 					System.out.println("Entrei! Devia imprimir"+proj.listaRecompensas.get(i).nome);
+					if (proj.listaRecompensas.get(i).valida==0)
+						str=str.concat("(Por validar): \n");
+					else if (proj.listaRecompensas.get(i).valida==1)
+						str=str.concat("(Garantida): \n");
 					str=str.concat(proj.listaRecompensas.get(i).imprimeRecompensa(i));
 				}
 			}
@@ -291,15 +308,39 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 		return str;
 	}
 	
+	
+	public String imprimeVotos(int projID) {
+		Projeto proj = procuraProjetoID(projID);
+		String str="";
+		int i=0;
+		for (i=0;i<proj.listaVotos.size();i++) {
+			str=str.concat(proj.listaVotos.get(i).imprime(i));
+		}
+		return str;
+	}
+	
+	synchronized public void escolheVoto(int userID, int projID, int index) {
+		Projeto proj = procuraProjetoID(projID);
+		proj.listaVotos.get(index).listaUsers.add(userID);
+		proj.listaVotos.get(index).contador+=1;
+	}
+	
 	/* OPERAÇÕES DE PROJETOS */
 	
 	/* criar um projeto - check! */
-	synchronized public void criaProjeto(int userID, String nome, float valor_objetivo, Calendar dataInicial, Calendar dataFinal) {
+	synchronized public void criaProjeto(int userID, String nome, float valor_objetivo, Calendar dataFinal, String descricao) {
 		int id = contadorIDProjeto.getAndIncrement();
 		System.out.println("ID e "+id+" aqui ");
 		bd.listaUtilizadores.get(userID).listaIDsProjeto.add(id);
-		Projeto proj = new Projeto(bd.listaUtilizadores.get(userID), nome, valor_objetivo, id, dataInicial, dataFinal);
+		Projeto proj = new Projeto(bd.listaUtilizadores.get(userID), nome, valor_objetivo, id, dataFinal, descricao);
 		bd.listaProjetos.add(proj);
+		
+		try {
+			guardaFicheiro();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
 	synchronized public void eliminaProjeto(int userID, int projID) {
@@ -319,6 +360,13 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 		retiraDoacao(userID, projID);
 		
 		bd.listaProjetos.remove(bd.listaProjetos.get(projID)); // retira da lista global de projetos
+		
+		try {
+			guardaFicheiro();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
 	// funciona
@@ -339,6 +387,13 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 			retiraRecompensa(userID, proj);
 		}
 		
+		try {
+			guardaFicheiro();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 	}
 	
 	synchronized public void retiraRecompensa(int userID, Projeto proj) {
@@ -350,6 +405,13 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 					bd.listaUtilizadores.get(userID).listaIDsRecompensas.remove(bd.listaUtilizadores.get(userID).listaIDsRecompensas.get(j));
 				}
 			}
+		}
+		
+		try {
+			guardaFicheiro();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 		
 	}
@@ -370,6 +432,13 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 			if (idProjeto == projID) {
 				user.listaDoacoesUser.remove(idProjeto, doacao);
 			}
+		}
+		
+		try {
+			guardaFicheiro();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
 	
@@ -401,14 +470,6 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 	
 
 	/* OPERAÇÕES DE RECOMPENSAS */
-	synchronized public void addRecompensa(int userID, int projID, String nome, float valor) {
-		int id = contadorIDRecompensa.getAndIncrement();
-		Projeto proj = procuraProjetoID(projID); 
-		Recompensa rec = new Recompensa(proj, nome, valor, id);
-		proj.listaRecompensas.add(rec);
-		//listaUtilizadores.get(userID).listaIDsRecompensas.add(id);
-	}
-	
 	synchronized public boolean escolherRecompensa(int userID, int projID, float dinheiro, int indexRecompensa) {
 		int i=0;
 		Projeto proj = procuraProjetoID(projID);
@@ -417,10 +478,36 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 		//System.out.println("Dinheiro: "+dinheiro+ " e valor da recomp: " + rec.valor);
 		if (dinheiro >= rec.valor) {
 			bd.listaUtilizadores.get(userID).listaIDsRecompensas.add(rec.id);
+			
+			try {
+				guardaFicheiro();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
 			return true;
 		}
 		return false;
 	}
+	
+	
+	synchronized public void addRecompensa(int userID, int projID, String nome, float valor) {
+		int id = contadorIDRecompensa.getAndIncrement();
+		Projeto proj = procuraProjetoID(projID); 
+		Recompensa rec = new Recompensa(proj, nome, valor, id, 0);
+		proj.listaRecompensas.add(rec);
+		//listaUtilizadores.get(userID).listaIDsRecompensas.add(id);
+		
+		try {
+			guardaFicheiro();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+
 	
 	synchronized public void removeRecompensa(int userID, int projID, String nome) {
 		// e se os users já tiverem escolhido uma recompensa e ela for cancelada? dinheiro, votos?
@@ -429,7 +516,16 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 		Recompensa rec = encontraRecompensa(projID, nome);
 		proj.listaRecompensas.remove(rec);
 		
+		try {
+			guardaFicheiro();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 	}
+	
+	
 	/* OPERAÇÕES DE INBOX */
 	synchronized public void adicionaMensagem(int userID, int projID, String mensagem) {
 		Projeto proj = procuraProjetoID(projID);
@@ -440,6 +536,13 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 		}
 		listaM.add(mens);
 		proj.inbox.put(userID, listaM);
+		
+		try {
+			guardaFicheiro();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
 	}
 	// TODO: hashmap no projeto faz corresponder user a arraylist de mensagens.
@@ -480,6 +583,13 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 		ArrayList <Mensagem> listaM = proj.inbox.get(userID);
 		listaM.add(mens);
 		proj.inbox.put(userID, listaM);
+		
+		try {
+			guardaFicheiro();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
 	/* AUXILIARES */
@@ -502,7 +612,49 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 		}
 		return null;
 	}
-
+	
+	// fimProjeto
+	public void updateValidadeProjetos() {
+		// dinheiro é enviado para o admin e as recompensas dos users ficam válidas 
+		for(int i=0; i<bd.listaProjetos.size();i++){ 
+			if(bd.listaProjetos.get(i).idade){ // se for atual
+				if(!bd.listaProjetos.get(i).verificaValidade()){  // se projeto tiver acabado data
+					bd.listaProjetos.get(i).idade=false;  // projeto passa para antigo
+					if (bd.listaProjetos.get(i).getValorRecolhido() >= bd.listaProjetos.get(i).valor_objetivo) { // conclui com sucesso
+						bd.listaProjetos.get(i).admin.saldo+=bd.listaProjetos.get(i).getValorRecolhido();
+						validaRecompensas(bd.listaProjetos.get(i));
+					}
+					else { // devolve dinheiro aos users
+						devolveDinheiro(bd.listaProjetos.get(i));
+					}
+				}
+			}
+		}
+		try {
+			guardaFicheiro();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
 
 	
+	public void validaRecompensas(Projeto proj) {
+		int i;
+		for (i=0;i<proj.listaRecompensas.size();i++) {
+			proj.listaRecompensas.get(i).valida=1;
+		}
+	}
+	
+	/* função que diz onde começa o id de Recompensas */
+	public void iniciaContadorRecompensas() {
+		int i,j, max=0;
+		for (i=0;i<bd.listaProjetos.size();i++) {
+			for (j=0;j<bd.listaProjetos.get(i).listaRecompensas.size();j++) {
+				if (bd.listaProjetos.get(i).listaRecompensas.get(j).id>max)
+					max = bd.listaProjetos.get(i).listaRecompensas.get(j).id;
+			}
+		}
+		contadorIDRecompensa.set(max+1);
+	}
 }
