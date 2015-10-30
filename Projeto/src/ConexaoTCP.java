@@ -16,6 +16,7 @@ import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RMISecurityManager;
 import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
@@ -205,12 +206,11 @@ class ConexaoTCP extends Thread {
 		            	
 		            	/* tenho de ler o ficheiro Properties */
 		            	// TODO: mudar Naming...
-		            	//System.getProperties().put("java.security.policy","policy.all") ;
-		            	// System.setSecurityManager(new RMISecurityManager()); 
 
 		            	
 						intRMI = (InterfaceRMI) Naming.lookup("rmi://localhost:7000/benfica");
-						ThreadValidade MyThread = new ThreadValidade(intRMI); 
+						//intRMI = (InterfaceRMI) LocateRegistry.getRegistry(7000).lookup("inte");
+		            	ThreadValidade MyThread = new ThreadValidade(intRMI); 
 						MyThread.start();
 						int userID=-1; 				 
 						

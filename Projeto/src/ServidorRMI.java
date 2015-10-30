@@ -14,10 +14,14 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
 
 public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 	
 	
+	private static final long serialVersionUID = 1L;
 	AtomicInteger contadorIDProjeto = new AtomicInteger(0);
 	AtomicInteger contadorIDRecompensa = new AtomicInteger(0);
 	BaseDeDados bd = new BaseDeDados();
@@ -29,17 +33,19 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 	
 	public static void main(String args[]) throws IOException, ClassNotFoundException {
 
-		System.setProperty("java.security.policy","file:///urs/lib/jvm/java-7-openjdk-i386/jre/lib/security/java.policy");
-        
+		System.getProperties().put("java.security.policy", "policy.all");
+        System.setSecurityManager(new RMISecurityManager());
+        System.setProperty("java.rmi.server.hostname", "192.168.1.6");
 		
 		try {
 			ServidorRMI servRMI= new ServidorRMI();
 			// TODO
+			
 			java.rmi.registry.LocateRegistry.createRegistry(7000); 
 			Naming.rebind("rmi://localhost:7000/benfica", servRMI);
 			
-			// TODO: arraylist IDs das recompensas etc?
-			
+			//Registry r = LocateRegistry.createRegistry(7000);
+			//r.rebind("inte", servRMI);
 			servRMI.iniciaDados(servRMI);
 			//servRMI.carregaFicheiro();
 			//servRMI.guardaFicheiro();
@@ -131,7 +137,6 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 		try {
 			guardaFicheiro();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
@@ -338,7 +343,6 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 		try {
 			guardaFicheiro();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -364,7 +368,6 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 		try {
 			guardaFicheiro();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -390,7 +393,6 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 		try {
 			guardaFicheiro();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
@@ -410,7 +412,6 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 		try {
 			guardaFicheiro();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
@@ -437,7 +438,6 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 		try {
 			guardaFicheiro();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -482,7 +482,6 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 			try {
 				guardaFicheiro();
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 			
@@ -502,7 +501,6 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 		try {
 			guardaFicheiro();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -519,7 +517,6 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 		try {
 			guardaFicheiro();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
@@ -540,7 +537,6 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 		try {
 			guardaFicheiro();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
@@ -587,7 +583,6 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 		try {
 			guardaFicheiro();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -633,7 +628,6 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 		try {
 			guardaFicheiro();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
