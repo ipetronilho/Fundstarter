@@ -35,8 +35,9 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 
 		System.getProperties().put("java.security.policy", "policy.all");
         System.setSecurityManager(new RMISecurityManager());
-        System.setProperty("java.rmi.server.hostname", "192.168.1.6");
-		
+       // System.setProperty("java.rmi.server.hostname", "192.168.1.6");
+        //System.setProperty("java.rmi.server.hostname", "169.254.161.252"); - para 2 PCs
+        
 		try {
 			ServidorRMI servRMI= new ServidorRMI();
 			// TODO
@@ -60,6 +61,10 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 			System.out.println("MalformedURLException: " + e);
 		}
 
+	}
+	
+	public void a() {
+		System.out.println("Ola");
 	}
 	
 	/* inicializa os dados iniciais */

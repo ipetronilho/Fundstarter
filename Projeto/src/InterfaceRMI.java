@@ -52,4 +52,6 @@ public interface InterfaceRMI extends Remote {
 	
 	
 	public void updateValidadeProjetos() throws RemoteException;
+	
+	public void a() throws RemoteException;
 }
