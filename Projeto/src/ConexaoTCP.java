@@ -67,33 +67,6 @@ class ConexaoTCP extends Thread {
         }catch(IOException e){System.out.println("Connection:" + e.getMessage());}
     }
     
-    public void incrementCounter(DataOutputStream out) {
-    	counter++;
-    	//System.out.println("Comparo "+counter+" com "+number_lines);
-    	if (counter==number_lines) {
-    		try {
-    			// TODO: tirar sleep e ver se resulta
-				out.writeUTF("IMPRIME");
-				System.out.println("Mandei msg para ele imprimir");
-				sleep(1000);
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-    	}
-    }
-    	
-	public void terminaThread() {
-		try {
-			this.join();
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-	}
-    
-    
     
     //=============================
     public void run() {
@@ -103,28 +76,38 @@ class ConexaoTCP extends Thread {
         int checkLogin=0;
         String nomeUser="";
         int guardaDados=0;
-        int tentativas=0, total_tentativas=5;
+        int tentativas=0, total_tentativas=100;
         
         System.out.println("Cheguei");
         String dados="";
        
 
         while(tentativas<total_tentativas){
-        	System.out.println("Outra tentativa");
+        	
 	        try{
-	        	System.out.println("Vou ler dados");
-	        	dados=in.readUTF();
+	        	System.out.println("Tentativa n"+tentativas);
+	        	
+	        	if(tentativas!=0)
+	        		dados="PEDIDO";
+	        	else
+	        		dados=in.readUTF();
+	        	
 	        	System.out.println("antes do Pedido");
 	            if (dados.compareToIgnoreCase("PEDIDO") == 0) {
 	                out.writeUTF(confirma); //SIM ou NAO, caso aceite ou nao pedidos
 	                
-	                System.out.println("Cheguei");
+	                
 			        //Verifica o login e efectua o registo.
 			        if (confirma.compareToIgnoreCase("SIM") == 0) {
 			        	System.out.println("Cheguei");
 			        	// envia o id da sessão ao cliente
-			        	String s_id_sessao=Integer.toString(this.id_sessao);
-			            out.writeUTF(s_id_sessao);
+			        	//String s_id_sessao=Integer.toString(this.id_sessao);
+			            //out.writeUTF(s_id_sessao);
+			        	
+			        	out.writeUTF("SESSAO");
+						String s_id_sessao=in.readUTF();
+						id_sessao=Integer.parseInt(s_id_sessao);
+						System.out.println("A minha sessao e "+s_id_sessao);
 			            
 			            filename_login = "ficheiros/"+id_sessao+"_infologin.txt";
 			            filename_operacao = "ficheiros/"+id_sessao+"_operacao.txt";
@@ -140,14 +123,30 @@ class ConexaoTCP extends Thread {
 			            
 							intRMI = (InterfaceRMI) Naming.lookup("rmi://localhost:7000/benfica");
 							//intRMI = (InterfaceRMI) LocateRegistry.getRegistry(7000).lookup("inte");
-			            	
+							
+							if (tentativas>0) {
+								apagaFicheiros(filename_login);
+			            		apagaFicheiros(filename_operacao);
+			            		apagaFicheiros(filename_backup);
+			            		checkLogin=0;
+							}
+							
+							/*if(tentativas>0) {
+								
+								File f = new File(filename_login);
+								if(f.exists()) {
+									checkLogin=1;
+				        		}
+								else
+									checkLogin=0;
+							}*/
 							// thread acorda de hora a hora e verifica a validade
 							ThreadValidade MyThread = new ThreadValidade(intRMI); 
 							
 							
 							MyThread.start();
-							int userID=-1; 				 
-							
+							int userID=-1;
+							System.out.println("Cheguei antes do check login");
 					            while(true){
 					                //an echo server
 						            if (checkLogin == 0) {
@@ -197,7 +196,7 @@ class ConexaoTCP extends Thread {
 						                		tentativas++;
 						                		System.out.println("Nao ha rmi");
 						                		
-					                			intRMI = (InterfaceRMI) Naming.lookup("rmi://localhost:7000/benfica");
+					                			//intRMI = (InterfaceRMI) Naming.lookup("rmi://localhost:7000/benfica");
 						                		
 						                		
 						                	}
@@ -644,14 +643,7 @@ class ConexaoTCP extends Thread {
 		        }
 	        catch(ConnectException e) {
 		        System.out.println("A tentar outra vez...");
-	        	try {
-					intRMI = (InterfaceRMI) Naming.lookup("rmi://localhost:7000/benfica");
-					
-				} catch (MalformedURLException e1) {
-				} catch (RemoteException e1) {
-				} catch (NotBoundException e1) {
-					System.out.println("Not bound...");
-				}
+	        	tentativas++;
 		        	
 	        }
 	        catch(EOFException e){
@@ -740,7 +732,32 @@ class ConexaoTCP extends Thread {
 		}
     }
     
-
+    public void incrementCounter(DataOutputStream out) {
+    	counter++;
+    	//System.out.println("Comparo "+counter+" com "+number_lines);
+    	if (counter==number_lines) {
+    		try {
+    			// TODO: tirar sleep e ver se resulta
+				out.writeUTF("IMPRIME");
+				System.out.println("Mandei msg para ele imprimir");
+				sleep(1000);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+    	}
+    }
+    	
+	public void terminaThread() {
+		try {
+			this.join();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
+    
     
 
 	public boolean ficheiroLoginVazio(){
@@ -806,18 +823,28 @@ class ThreadValidade extends Thread{
 	}
 	
 	public void run() {
-		try {
-			// TODO: dorme 1 dia
-			sleep(60000);
-			System.out.println("Ola da thread!");
-			intRMI.updateValidadeProjetos();
-			Thread.sleep(10000);
-		} catch (RemoteException e1) {
-			System.out.println("Falha no RMI");
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		} // dorme 1 minuto
-		//dorme 1 hora
+		while(true) {
+			try {
+				// TODO: dorme 1 dia
+				sleep(60000);
+				System.out.println("Ola da thread!");
+				intRMI.updateValidadeProjetos();
+				Thread.sleep(10000);
+			} catch (RemoteException e1) {
+				try {
+					intRMI = (InterfaceRMI) Naming.lookup("rmi://localhost:7000/benfica");
+				} catch (MalformedURLException e) {
+					e.printStackTrace();
+				} catch (RemoteException e) {
+					e.printStackTrace();
+				} catch (NotBoundException e) {
+					e.printStackTrace();
+				}
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			} // dorme 1 minuto
+			//dorme 1 hora
+		}
 	}
 }
 

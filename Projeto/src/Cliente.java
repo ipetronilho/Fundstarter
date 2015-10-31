@@ -31,6 +31,9 @@ public class Cliente {
     static String filename_backup="";
     static String filename_operacao="";
     
+    static int id_sessao=-1;
+    static String s_id_sessao="";
+    
     public static void main(String args[]) throws InterruptedException {
         // args[0] <- hostname of destination
         if (args.length == 0) {
@@ -41,6 +44,8 @@ public class Cliente {
         carregaPortosFicheiro(); // carrega os portos que correspondem a cada ficheiro
         int i, j, fail_counter = 0;
         String msg = "";
+        getIDSessao();
+        s_id_sessao = Integer.toString(id_sessao);
         
         while (true) { // alterna constantemente entre servidores para se ligar
         	
@@ -112,11 +117,20 @@ public class Cliente {
 
             if (data.compareToIgnoreCase("SIM") == 0) { //pedido aceite
             	
+            	
+            	
                 str = "";
                 
                 // lê o id da sessão
                 System.out.println("Aqui...");
-                String id_sessao = in.readUTF();
+                //String st_id_sessao = in.readUTF();
+                
+                data = in.readUTF();
+                if (data.compareToIgnoreCase("SESSAO")==0) {
+                	out.writeUTF(s_id_sessao);
+                	System.out.println("Vou enviar a sessao "+s_id_sessao);
+                }
+                
                 //int id_sessao=Integer.parseInt(data);
                 System.out.println("Ca estou! o meu id e "+id_sessao);
                 
@@ -124,9 +138,9 @@ public class Cliente {
 	            filename_backup="ficheiros/"+id_sessao+"_backup.txt";
 	            filename_operacao="ficheiros/"+id_sessao+"_operacao.txt";
                 
-                
-                Receiver MyThread = new Receiver(in); // lê de teclado
+	            Receiver MyThread = new Receiver(in, s_id_sessao, out); // lê de teclado
                 MyThread.start();
+                
                 
                 String texto = "";
                 InputStreamReader input = new InputStreamReader(System.in);
@@ -294,6 +308,38 @@ public class Cliente {
 		return false;
     }
     
+    /* lê login */
+    public static void getIDSessao() {
+    	String filename="ficheiros/id_sessao.txt";
+    	String line="";
+    	
+        try {
+            FileReader fileReader = new FileReader(filename);
+            BufferedReader bufferedReader = new BufferedReader(fileReader);
+            
+            line = bufferedReader.readLine();
+            id_sessao = Integer.parseInt(line);
+            bufferedReader.close();
+            
+            int id=id_sessao+1;
+            line=Integer.toString(id);
+            
+            
+            PrintWriter writer = new PrintWriter(filename, "UTF-8");
+			writer.println(line);
+		    writer.close();
+                
+        }
+        catch(FileNotFoundException ex) {
+            System.out.println("Unable to open file '" + filename_login + "'");                
+        }
+        catch(IOException ex) {
+            System.out.println("Error reading file '" + filename_login + "'");                  
+
+        }
+  
+    }
+	
 	
     /* lê login */
     public static void leFicheiroLogin(DataOutputStream out) {
@@ -444,9 +490,13 @@ class Receiver extends Thread {
     // dados gravados no cliente em caso de falha de rede
     int userID=-1;
     int imprime=1;
+    String s_id_sessao;
+    
 
-    public Receiver(DataInputStream ain) {
+    public Receiver(DataInputStream ain, String s_id_sessao, DataOutputStream aout) {
         this.in = ain;
+        this.s_id_sessao=s_id_sessao;
+        this.out=aout;
     }
     
     
@@ -460,10 +510,14 @@ class Receiver extends Thread {
             // READ FROM SOCKET
             try {
                 String data = in.readUTF(); // lê o que foi escrito
-
+                System.out.println("Recebi " + data);
                 if (data.compareToIgnoreCase("IMPRIME")==0) {
                 	setImprime(1);
                 }
+                
+                if (data.compareToIgnoreCase("SESSAO")==0)
+                	out.writeUTF(s_id_sessao);
+               
                 
                 else if (imprime==1)
                 	System.out.println("> " + data); // print o que o serv. escreveu
