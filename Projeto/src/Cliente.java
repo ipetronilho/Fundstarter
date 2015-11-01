@@ -126,19 +126,12 @@ public class Cliente {
                 str = "";
                 
                 // lê o id da sessão
-                System.out.println("Aqui...");
-                //String st_id_sessao = in.readUTF();
                 
                 data = in.readUTF();
                 if (data.compareToIgnoreCase("SESSAO")==0) {
                 	out.writeUTF(s_id_sessao);
-                	System.out.println("Vou enviar a sessao "+s_id_sessao);
                 }
                 
-                //int id_sessao=Integer.parseInt(data);
-                System.out.println("Ca estou! o meu id e "+id_sessao);
-                
-
                 
 	            Receiver MyThread = new Receiver(in, s_id_sessao, out); // lê de teclado
                 MyThread.start();
@@ -147,10 +140,6 @@ public class Cliente {
                 String texto = "";
                 InputStreamReader input = new InputStreamReader(System.in);
                 BufferedReader reader = new BufferedReader(input);
-                
-                
-                recuperaSessao(MyThread, out);
-               
                 
                 
                 while (true) {
@@ -165,8 +154,9 @@ public class Cliente {
                     	
                         System.out.println("A conectar-se a outro servidor...");
                         
-                        salvaFicheiroBackup();
-                        guardaFicheiro(texto);
+                        System.out.println("Muito mau sinal...");
+                        MyThread.salvaFicheiroBackup();
+                        MyThread.guardaFicheiro(texto);
                         
                         return "TROCA";
                     }
@@ -197,35 +187,7 @@ public class Cliente {
     /* se o user perdeu sessão, tem de recuperar o login e a operação
      * que estava a fazer quando foi interrompido
      */
-    public static void recuperaSessao(Receiver MyThread, DataOutputStream out) {
-    	
-        filename_login="ficheiros/"+id_sessao+"_infologin.txt";
-        filename_backup="ficheiros/"+id_sessao+"_backup.txt";
-        filename_operacao="ficheiros/"+id_sessao+"_operacao.txt";
-    	
-    	
-    	/*
-         * lê o ficheiro login.txt
-         */
-        File f = new File(filename_login);
-		if(f.exists() && !f.isDirectory()) {
-            if (!ficheiroVazio(filename_login)) {
-            	MyThread.setImprime(0);
-            	leFicheiro(filename_login, out);
-            }
-		}
-        
-		/*
-		 * lê a operação de backup.txt
-		 */
-		File f2 = new File(filename_backup);
-		if(f2.exists() && !f2.isDirectory()) {
-            if (!ficheiroVazio(filename_backup)) {
-            	MyThread.setImprime(0);
-            	leFicheiro(filename_backup, out);
-            }
-		}
-    }
+
     
     // guarda os portos. recebe o index do porto primário
     public static void guardaPortosFicheiro(int i) {
@@ -278,43 +240,8 @@ public class Cliente {
 
         }
     }
-  
-    // guarda uma frase em ficheiro
-    public static void guardaFicheiro(String st) {
-    	//System.out.println("Acrescento "+st);
-		try {
-			PrintWriter writer = new PrintWriter(new BufferedWriter(new FileWriter(filename_backup, true)));
-		    writer.println(st);
-		    writer.close();
-			
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-    	
-    }
-    
-    // verifica se o ficheiro está vazio
-	public static boolean ficheiroVazio(String filename){
-		BufferedReader br; 
-		try {
-			br= new BufferedReader(new FileReader(filename));  
-			if (br.readLine() == null) {
-				br.close();
-			    return true;
-			}
-			br.close();
-			
-		} catch (FileNotFoundException e1) {
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		return false;
-    }
-    
+
+
     /* vai buscar o ID da sua sessão ao ficheiro id_sessao.txt */
     public static void getIDSessao() {
     	String filename="ficheiros/id_sessao.txt";
@@ -347,6 +274,121 @@ public class Cliente {
   
     }
 	
+
+
+}
+
+class Receiver extends Thread {
+	ArrayList <Integer> listaOperacoes = new ArrayList <Integer>();
+    DataInputStream in;
+    DataOutputStream out;
+    // dados gravados no cliente em caso de falha de rede
+    int userID=-1;
+    int imprime=1;
+    String s_id_sessao;
+	String filename_login="";
+    String filename_backup="";
+    String filename_operacao="";
+	
+    
+    
+
+    public Receiver(DataInputStream ain, String s_id_sessao, DataOutputStream aout) {
+        this.in = ain;
+        this.s_id_sessao=s_id_sessao;
+        this.out=aout;
+        filename_login="ficheiros/"+s_id_sessao+"_infologin.txt";
+        filename_backup="ficheiros/"+s_id_sessao+"_backup.txt";
+        filename_operacao="ficheiros/"+s_id_sessao+"_operacao.txt";
+    }
+    
+    
+    public void setImprime(int imprime) {
+    	this.imprime=imprime;
+    }
+
+    //=============================
+    public void run() {
+    	
+    	String msg=recuperaSessao(this.out);
+    	
+        while (true) {
+            // READ FROM SOCKET
+            try {
+                String data = in.readUTF(); // lê o que foi escrito
+                //System.out.println("Recebi " + data);
+                if (data.compareToIgnoreCase("IMPRIME")==0) {
+                	setImprime(1);
+                }
+                
+                else if (data.compareToIgnoreCase("RESET")==0) {
+                	System.out.println("Dou ordem - tudo OK");
+                	salvaFicheiroBackup();
+                	recuperaSessao(this.out);
+                }
+               
+                else if (imprime==1)
+                	System.out.println("> " + data); // print o que o serv. escreveu
+                
+            } catch (SocketException e) {
+            	
+                System.out.print("O Socket Servidor fechou"); //Caso o socket de conecção ao cliente se fechar este imprime o erro
+                
+                break;
+            } catch (Exception e) {
+                System.out.println("Sock:" + e.getMessage());
+                break;	
+            }
+        }
+        //System.out.println("Fim.");
+        
+    }
+    
+    public String recuperaSessao(DataOutputStream out) {
+    	System.out.println("--Recupero sessao!");
+    	/*
+         * lê o ficheiro login.txt
+         */
+        File f = new File(filename_login);
+		if(f.exists() && !f.isDirectory()) {
+            if (!ficheiroVazio(filename_login)) {
+            	setImprime(0);
+            	leFicheiro(filename_login, out);
+            }
+		}
+        
+		/*
+		 * lê a operação de backup.txt
+		 */
+		File f2 = new File(filename_backup);
+		if(f2.exists() && !f2.isDirectory()) {
+            if (!ficheiroVazio(filename_backup)) {
+            	setImprime(0);
+            	leFicheiro(filename_backup, out);
+            }
+		}
+		return "sucesso";
+    }
+    
+    // verifica se o ficheiro está vazio
+	public static boolean ficheiroVazio(String filename){
+		BufferedReader br; 
+		try {
+			br= new BufferedReader(new FileReader(filename));  
+			if (br.readLine() == null) {
+				br.close();
+			    return true;
+			}
+			br.close();
+			
+		} catch (FileNotFoundException e1) {
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return false;
+    }
+    
+    
     /* lê de ficheiro e envia ao servidor */
     public static void leFicheiro(String filename, DataOutputStream out) {
     	
@@ -374,13 +416,10 @@ public class Cliente {
         }
     	
     }
+    
+    public void salvaFicheiroBackup() {
 
-    /* Quando o Cliente perde a ligação com o Servidor
-     * registo no ficheiro Backup a última operação que ele fez
-     */
-    public static void salvaFicheiroBackup() {
-
-    	
+    	filename_operacao="ficheiros/"+s_id_sessao+"_operacao.txt";
     	File f = new File(filename_login);
 		if(!f.exists() && !f.isDirectory()) {
 			criaFicheiros(filename_backup);
@@ -412,9 +451,6 @@ public class Cliente {
 		apagaConteudoFicheiro(filename_operacao); // apaga as Operações
     }
     
-    /*
-     * 
-     */
     public static void criaFicheiros(String filepath) {
     	File file = new File(filepath);
 	      
@@ -444,56 +480,22 @@ public class Cliente {
 		}
     }
     
-}
-
-class Receiver extends Thread {
-	ArrayList <Integer> listaOperacoes = new ArrayList <Integer>();
-    DataInputStream in;
-    DataOutputStream out;
-    // dados gravados no cliente em caso de falha de rede
-    int userID=-1;
-    int imprime=1;
-    String s_id_sessao;
-    
-
-    public Receiver(DataInputStream ain, String s_id_sessao, DataOutputStream aout) {
-        this.in = ain;
-        this.s_id_sessao=s_id_sessao;
-        this.out=aout;
+    // guarda uma frase em ficheiro
+    public void guardaFicheiro(String st) {
+    	//System.out.println("Acrescento "+st);
+		try {
+			PrintWriter writer = new PrintWriter(new BufferedWriter(new FileWriter(filename_backup, true)));
+		    writer.println(st);
+		    writer.close();
+			
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+    	
     }
-    
-    
-    public void setImprime(int imprime) {
-    	this.imprime=imprime;
-    }
-
-    //=============================
-    public void run() {
-        while (true) {
-            // READ FROM SOCKET
-            try {
-                String data = in.readUTF(); // lê o que foi escrito
-                //System.out.println("Recebi " + data);
-                if (data.compareToIgnoreCase("IMPRIME")==0) {
-                	setImprime(1);
-                }
-               
-                else if (imprime==1)
-                	System.out.println("> " + data); // print o que o serv. escreveu
-                
-            } catch (SocketException e) {
-            	
-                System.out.print("O Socket Servidor fechou"); //Caso o socket de conecção ao cliente se fechar este imprime o erro
-                
-                break;
-            } catch (Exception e) {
-                System.out.println("Sock:" + e.getMessage());
-                break;	
-            }
-        }
-        //System.out.println("Fim.");
-        
-    }
-    
 
 }

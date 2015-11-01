@@ -32,7 +32,7 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 	}
 	
 	public static void main(String args[]) throws IOException, ClassNotFoundException {
-
+		
 		System.getProperties().put("java.security.policy", "policy.all");
         System.setSecurityManager(new RMISecurityManager());
        // System.setProperty("java.rmi.server.hostname", "192.168.1.6");
@@ -42,12 +42,13 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 			ServidorRMI servRMI= new ServidorRMI();
 			// TODO
 			
+			servRMI.iniciaDados(servRMI);
 			java.rmi.registry.LocateRegistry.createRegistry(7000); 
 			Naming.rebind("rmi://localhost:7000/benfica", servRMI);
 			
 			//Registry r = LocateRegistry.createRegistry(7000);
 			//r.rebind("inte", servRMI);
-			servRMI.iniciaDados(servRMI);
+			
 			//servRMI.carregaFicheiro();
 			//servRMI.guardaFicheiro();
 			
@@ -193,6 +194,7 @@ public class ServidorRMI extends UnicastRemoteObject implements InterfaceRMI {
 	/* CONSULTA */
 	/* retorna o saldo */
 	public String consultarSaldo(int userID) {
+		System.out.println("O primeiro user e "+bd.listaUtilizadores.get(0).nome);
 		return "Saldo: "+bd.listaUtilizadores.get(userID).getSaldo()+"\n";
 	}
 	

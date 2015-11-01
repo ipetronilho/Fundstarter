@@ -32,7 +32,7 @@ class ConexaoTCP extends Thread {
     int thread_number;
     ArrayList <DataOutputStream> lista = new ArrayList <DataOutputStream>();
     String confirma;
-    int counter;
+    int counter=0;
     int number_lines=-1;
     int id_sessao;
     
@@ -85,40 +85,19 @@ class ConexaoTCP extends Thread {
 	        		
 			try {
 				dados=in.readUTF();
-			} catch (IOException e3) {
-				// TODO Auto-generated catch block
-				e3.printStackTrace();
-			}
 					
-	        	
-	        	System.out.println("antes do Pedido");
 	            if (dados.compareToIgnoreCase("PEDIDO") == 0) {
-	                try {
-						out.writeUTF(confirma);
-					} catch (IOException e3) {
-						// TODO Auto-generated catch block
-						e3.printStackTrace();
-					} //SIM ou NAO, caso aceite ou nao pedidos
-	                
+	            
+					out.writeUTF(confirma); //SIM ou NAO, caso aceite ou nao pedidos
 	                
 			        //Verifica o login e efectua o registo.
 			        if (confirma.compareToIgnoreCase("SIM") == 0) {
-			        	System.out.println("Cheguei");
-			        	// envia o id da sessão ao cliente
-			        	//String s_id_sessao=Integer.toString(this.id_sessao);
-			            //out.writeUTF(s_id_sessao);
-			        	
-			        	try {
-							out.writeUTF("SESSAO");
-							s_id_sessao = in.readUTF();
-						} catch (IOException e3) {
-							// TODO Auto-generated catch block
-							e3.printStackTrace();
-						}
-			        	
+
+						out.writeUTF("SESSAO");
+						s_id_sessao = in.readUTF();
 					
 						id_sessao=Integer.parseInt(s_id_sessao);
-						System.out.println("A minha sessao e "+s_id_sessao);
+						System.out.println("Nova sessao: "+s_id_sessao);
 			            
 			            filename_login = "ficheiros/"+id_sessao+"_infologin.txt";
 			            filename_operacao = "ficheiros/"+id_sessao+"_operacao.txt";
@@ -129,30 +108,35 @@ class ConexaoTCP extends Thread {
 			            
 			            criaFicheiros(filename_operacao);
 			            criaFicheiros(filename_backup);
-			            try {
+			       
 							number_lines = countLines(filename_backup);
-						} catch (IOException e3) {
-							// TODO Auto-generated catch block
-							e3.printStackTrace();
-						}
-			            
+	
 			        
-			            
+				int userID=-1;
 			            
 	            while(tentativas<total_tentativas){
 	            	
 	    	        try{
 	    	        	System.out.println("Tentativa n"+tentativas);
 	    	        	
+	    	        	// out.writeUTF("RESET");
 			            
 							intRMI = (InterfaceRMI) Naming.lookup("rmi://localhost:7000/benfica");
-							//intRMI = (InterfaceRMI) LocateRegistry.getRegistry(7000).lookup("inte");
+							
 							
 							if (tentativas>0) {
-								apagaFicheiros(filename_login);
-			            		apagaFicheiros(filename_operacao);
-			            		apagaFicheiros(filename_backup);
-			            		checkLogin=0;
+								out.writeUTF("RESET");
+								checkLogin=0;
+								userID=-1;
+								this.counter=0;
+								// dar tempo ao Cliente para que escreva o ficheiro backup
+								try {
+									sleep(1000);
+								} catch (InterruptedException e) {
+								}
+								System.out.println("Vou contar as linhas do "+filename_backup);
+								number_lines = countLines(filename_backup);
+								System.out.println("Linhas: "+number_lines);
 							}
 
 							// thread acorda de hora a hora e verifica a validade
@@ -160,23 +144,25 @@ class ConexaoTCP extends Thread {
 							
 							
 							MyThread.start();
-							int userID=-1;
-							System.out.println("Cheguei antes do check login");
+							
+							System.out.println("Cheguei antes do check login"+checkLogin);
 					            while(true){
 					                //an echo server
 						            if (checkLogin == 0) {
-						            	
+						            	System.out.println("Vou manda o bem vindo");
 						            	/* ---- MENU ---- */
 						                out.writeUTF("Bem vindo! Seleccione uma opcao! 1-Login; 2-Registar; 3-Consultar dados");
 						                
+						                System.out.println("Vou ler");
 						                String data = in.readUTF();
+						                System.out.println("Recebo "+data);
 						                // so se o ficheiro de login nao existir
 						                File f = new File(filename_login);
 						        		if(!f.exists() && !f.isDirectory()) {
 						        			incrementCounter(out);
 						        		}
 						                int opcao=Integer.parseInt(data);
-						                //System.out.println("Recebi "+data);
+						                System.out.println("Recebi "+data);
 						                
 					                	
 						                
@@ -683,6 +669,10 @@ class ConexaoTCP extends Thread {
     	
     }
 	            }
+    } catch (IOException e3) {
+		// TODO Auto-generated catch block
+		e3.printStackTrace();
+	}
     }
 			        
     
@@ -755,7 +745,7 @@ class ConexaoTCP extends Thread {
     
     public void incrementCounter(DataOutputStream out) {
     	counter++;
-    	//System.out.println("Comparo "+counter+" com "+number_lines);
+    	System.out.println("Comparo "+counter+" com "+number_lines);
     	if (counter==number_lines) {
     		try {
     			// TODO: tirar sleep e ver se resulta
@@ -838,29 +828,22 @@ class ConexaoTCP extends Thread {
 
 class ThreadValidade extends Thread{
 	InterfaceRMI intRMI;
+	int dia;
 	
 	public ThreadValidade(InterfaceRMI intRMI) {
 		this.intRMI=intRMI;
+		this.dia=1000*60*60*24;
 	}
 	
 	public void run() {
 		while(true) {
 			try {
-				// TODO: dorme 1 dia
-				sleep(60000);
-				System.out.println("Ola da thread!");
+				// dorme um dia e faz update da validade dos projetos
+				sleep(dia);
 				intRMI.updateValidadeProjetos();
 				Thread.sleep(10000);
 			} catch (RemoteException e1) {
-				try {
-					intRMI = (InterfaceRMI) Naming.lookup("rmi://localhost:7000/benfica");
-				} catch (MalformedURLException e) {
-					e.printStackTrace();
-				} catch (RemoteException e) {
-					e.printStackTrace();
-				} catch (NotBoundException e) {
-					e.printStackTrace();
-				}
+				e1.printStackTrace();
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			} // dorme 1 minuto
