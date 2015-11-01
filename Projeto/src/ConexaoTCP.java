@@ -71,30 +71,34 @@ class ConexaoTCP extends Thread {
     //=============================
     public void run() {
         String resposta;
-     // Cliente RMI que se liga ao Servidor RMI
         InterfaceRMI intRMI;
         int checkLogin=0;
         String nomeUser="";
         int guardaDados=0;
         int tentativas=0, total_tentativas=100;
         
-        System.out.println("Cheguei");
         String dados="";
+        String s_id_sessao="";
        
 
-        while(tentativas<total_tentativas){
-        	
-	        try{
-	        	System.out.println("Tentativa n"+tentativas);
 	        	
-	        	if(tentativas!=0)
-	        		dados="PEDIDO";
-	        	else
-	        		dados=in.readUTF();
+	        		
+			try {
+				dados=in.readUTF();
+			} catch (IOException e3) {
+				// TODO Auto-generated catch block
+				e3.printStackTrace();
+			}
+					
 	        	
 	        	System.out.println("antes do Pedido");
 	            if (dados.compareToIgnoreCase("PEDIDO") == 0) {
-	                out.writeUTF(confirma); //SIM ou NAO, caso aceite ou nao pedidos
+	                try {
+						out.writeUTF(confirma);
+					} catch (IOException e3) {
+						// TODO Auto-generated catch block
+						e3.printStackTrace();
+					} //SIM ou NAO, caso aceite ou nao pedidos
 	                
 	                
 			        //Verifica o login e efectua o registo.
@@ -104,8 +108,15 @@ class ConexaoTCP extends Thread {
 			        	//String s_id_sessao=Integer.toString(this.id_sessao);
 			            //out.writeUTF(s_id_sessao);
 			        	
-			        	out.writeUTF("SESSAO");
-						String s_id_sessao=in.readUTF();
+			        	try {
+							out.writeUTF("SESSAO");
+							s_id_sessao = in.readUTF();
+						} catch (IOException e3) {
+							// TODO Auto-generated catch block
+							e3.printStackTrace();
+						}
+			        	
+					
 						id_sessao=Integer.parseInt(s_id_sessao);
 						System.out.println("A minha sessao e "+s_id_sessao);
 			            
@@ -118,8 +129,21 @@ class ConexaoTCP extends Thread {
 			            
 			            criaFicheiros(filename_operacao);
 			            criaFicheiros(filename_backup);
-			            number_lines = countLines(filename_backup);
+			            try {
+							number_lines = countLines(filename_backup);
+						} catch (IOException e3) {
+							// TODO Auto-generated catch block
+							e3.printStackTrace();
+						}
 			            
+			        
+			            
+			            
+	            while(tentativas<total_tentativas){
+	            	
+	    	        try{
+	    	        	System.out.println("Tentativa n"+tentativas);
+	    	        	
 			            
 							intRMI = (InterfaceRMI) Naming.lookup("rmi://localhost:7000/benfica");
 							//intRMI = (InterfaceRMI) LocateRegistry.getRegistry(7000).lookup("inte");
@@ -130,16 +154,7 @@ class ConexaoTCP extends Thread {
 			            		apagaFicheiros(filename_backup);
 			            		checkLogin=0;
 							}
-							
-							/*if(tentativas>0) {
-								
-								File f = new File(filename_login);
-								if(f.exists()) {
-									checkLogin=1;
-				        		}
-								else
-									checkLogin=0;
-							}*/
+
 							// thread acorda de hora a hora e verifica a validade
 							ThreadValidade MyThread = new ThreadValidade(intRMI); 
 							
@@ -181,8 +196,10 @@ class ConexaoTCP extends Thread {
 							        			criaFicheiros(filename_login);
 							        			guardaDados=1;
 							        		}
-						                	if(guardaDados==1)
+						                	if(guardaDados==1) {
+						                		guardaFicheiroLogin(data);
 						                		guardaFicheiroLogin(nomeUser);
+						                	}
 						                	
 						                	out.writeUTF("Insira password:");
 						                	String password = in.readUTF();
@@ -638,8 +655,8 @@ class ConexaoTCP extends Thread {
 						            }
 					                
 					            }
-			            }
-			        }
+			            
+			        
 		        }
 	        catch(ConnectException e) {
 		        System.out.println("A tentar outra vez...");
@@ -661,9 +678,13 @@ class ConexaoTCP extends Thread {
 			} 
 	        catch (NumberFormatException e2) {
 				System.out.println("Formato invalido! " + e2);
-			}
-    	}
+			} 
+        }
+    	
     }
+	            }
+    }
+			        
     
     public static void apagaConteudoFicheiro(String filepath) {
 

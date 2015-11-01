@@ -19,14 +19,14 @@ public class Cliente {
 	static int TIMEOUT = 600000;
     static boolean DEBUG = true;
     static int tentativas = 3, falhou = 10;
-    //static String serverAddress = "169.254.36.100";
+    
     // tem de ter 2 ips e dois portos distintos
     static String serverAddress = "localhost";
     static String nomeUser="";
-    //static int[] availablesockets = {6000, 8000};
-    static int[] serversockets = {6000, 8000};
+    static int[] serversockets = {6000, 8000};	// default
     //static String serverAddress = "169.254.143.125";
-    
+    //static String serverAddress = "169.254.36.100";
+    // static String serverAddresses={"localhost", "169.254.132.125"};
     static String filename_login="";
     static String filename_backup="";
     static String filename_operacao="";
@@ -41,32 +41,39 @@ public class Cliente {
 	         System.exit(0);
          }
         
-        carregaPortosFicheiro(); // carrega os portos que correspondem a cada ficheiro
         int i, j, fail_counter = 0;
         String msg = "";
+        
+        // carrega os portos que correspondem a cada servidor
+        carregaPortosFicheiro(); 
+        
         getIDSessao();
         s_id_sessao = Integer.toString(id_sessao);
         
-        while (true) { // alterna constantemente entre servidores para se ligar
+     // alterna constantemente entre servidores para se ligar
+        while (true) {
         	
             for (i = 0; i < 2; i++) {
 
                 if (DEBUG == true) {
                     System.out.println("Nova ligacao ao servidor: " + (i + 1));
                 }
-                
-                
+                /*
+                 * tenta ligar-se 1 vez ao servidor. 
+                 * - se não consegue conectar-se recebe "TROCA" e muda de servidor
+                 * - se consegue, recebe outra mensagem e volta a tentar
+                 */
                 msg = conexaoServidor(serverAddress, serversockets[i], i);
-             
                 
+                // tenta de novo ao mesmo servidor
                 if (msg.compareToIgnoreCase("TROCA") != 0 && msg.length() > 0) {
                     for (j = 0; j < tentativas; j++) { // tenta 3 vezes
-                    	
                         if (msg.compareToIgnoreCase("TROCA") != 0 && msg.length() > 0) {
-                            Thread.sleep(1000); // espera 1 segundo e volta a tentar
+                            Thread.sleep(1000);
                             msg = conexaoServidor(serverAddress, serversockets[i], i);
-                            System.out.println("Recebi "+msg);
+                            
                         } 
+                        /* tenta de novo a um servidor diferente */
                         else {
                             j = tentativas;
                             System.out.println("Vou trocar!");
@@ -75,8 +82,9 @@ public class Cliente {
                 }
 
             }
-
-            if (fail_counter == falhou) { // se tentou ligar-se 10 vezes a cada servidor e mesmo assim falhou as 10, desiste
+            
+         // se tentou ligar-se 3x10 vezes a cada servidor e mesmo assim falhou as 10, desiste
+            if (fail_counter == falhou) { 
                 System.out.println("Servidores em baixo. Tente mais tarde.");
                 System.exit(-1); // erro
             }
@@ -93,8 +101,6 @@ public class Cliente {
         String str = "";
         Socket s = null;
         String data;
-        //String nomeUser="";
-        // regista as operações
         
         try {
             System.out.println("\nHost é '" + serverAddress + "' e socket" + serversocket);
@@ -109,15 +115,13 @@ public class Cliente {
             guardaPortosFicheiro(i);
             DataInputStream in = new DataInputStream(s.getInputStream());
             DataOutputStream out = new DataOutputStream(s.getOutputStream());
-            System.out.println("Cheguei-c");
+           
             out.writeUTF("PEDIDO");
-            System.out.println("Cheguei-c2");
+          
             s.setSoTimeout(TIMEOUT);	// tempo limitado
             data = in.readUTF();
 
             if (data.compareToIgnoreCase("SIM") == 0) { //pedido aceite
-            	
-            	
             	
                 str = "";
                 
@@ -134,9 +138,7 @@ public class Cliente {
                 //int id_sessao=Integer.parseInt(data);
                 System.out.println("Ca estou! o meu id e "+id_sessao);
                 
-                filename_login="ficheiros/"+id_sessao+"_infologin.txt";
-	            filename_backup="ficheiros/"+id_sessao+"_backup.txt";
-	            filename_operacao="ficheiros/"+id_sessao+"_operacao.txt";
+
                 
 	            Receiver MyThread = new Receiver(in, s_id_sessao, out); // lê de teclado
                 MyThread.start();
@@ -147,25 +149,9 @@ public class Cliente {
                 BufferedReader reader = new BufferedReader(input);
                 
                 
-                File f = new File(filename_login);
-        		if(f.exists() && !f.isDirectory()) {
-	                if (!ficheiroVazio(filename_login)) {
-	                	MyThread.setImprime(0);
-	                	leFicheiroLogin(out);
-	                }
-        		}
+                recuperaSessao(MyThread, out);
+               
                 
-        		File f2 = new File(filename_backup);
-        		if(f2.exists() && !f2.isDirectory()) {
-        	
-	                //leFicheiroBackup(out, nomeUser, MyThread);
-	                if (!ficheiroVazio(filename_backup)) {
-	                	MyThread.setImprime(0);
-	                	leFicheiroBackup(out, MyThread);
-	                }
-        		}
-                
-                System.out.println("Cheguei aquiiiii");
                 
                 while (true) {
                     try {
@@ -191,7 +177,9 @@ public class Cliente {
             }
         } catch (IOException ex) {
             Logger.getLogger(Cliente.class.getName()).log(Level.SEVERE, null, ex);
-        } finally {	// tenho de fechar o socket
+        } 
+        // fechar o socket
+        finally {	
             if (s != null) {
                 try {
                     s.close();
@@ -200,10 +188,43 @@ public class Cliente {
                 }
             }
         }
-        //MyThread.
-        //setNomeUser(MyThread.);
         return str;
 
+    }
+    
+    // ---- OPERAÇÕES DE FICHEIROS
+    
+    /* se o user perdeu sessão, tem de recuperar o login e a operação
+     * que estava a fazer quando foi interrompido
+     */
+    public static void recuperaSessao(Receiver MyThread, DataOutputStream out) {
+    	
+        filename_login="ficheiros/"+id_sessao+"_infologin.txt";
+        filename_backup="ficheiros/"+id_sessao+"_backup.txt";
+        filename_operacao="ficheiros/"+id_sessao+"_operacao.txt";
+    	
+    	
+    	/*
+         * lê o ficheiro login.txt
+         */
+        File f = new File(filename_login);
+		if(f.exists() && !f.isDirectory()) {
+            if (!ficheiroVazio(filename_login)) {
+            	MyThread.setImprime(0);
+            	leFicheiro(filename_login, out);
+            }
+		}
+        
+		/*
+		 * lê a operação de backup.txt
+		 */
+		File f2 = new File(filename_backup);
+		if(f2.exists() && !f2.isDirectory()) {
+            if (!ficheiroVazio(filename_backup)) {
+            	MyThread.setImprime(0);
+            	leFicheiro(filename_backup, out);
+            }
+		}
     }
     
     // guarda os portos. recebe o index do porto primário
@@ -242,11 +263,9 @@ public class Cliente {
             
             String line = bufferedReader.readLine();
             serversockets[0]= Integer.parseInt(line);
-            System.out.println("Li "+serversockets[0]);
             
             line = bufferedReader.readLine();
             serversockets[1]= Integer.parseInt(line);
-            System.out.println("Li "+serversockets[1]);
             
             bufferedReader.close();
                 
@@ -259,19 +278,10 @@ public class Cliente {
 
         }
     }
-    
-    public static void cleanupFicheiros(String st) {
-    	apagaConteudoFicheiro(filename_operacao);
-    	apagaConteudoFicheiro(filename_login);
-    	apagaConteudoFicheiro(filename_backup);
-    }
-
-
-
-    
-    
+  
+    // guarda uma frase em ficheiro
     public static void guardaFicheiro(String st) {
-    	System.out.println("Acrescento "+st);
+    	//System.out.println("Acrescento "+st);
 		try {
 			PrintWriter writer = new PrintWriter(new BufferedWriter(new FileWriter(filename_backup, true)));
 		    writer.println(st);
@@ -287,9 +297,8 @@ public class Cliente {
     	
     }
     
-    
+    // verifica se o ficheiro está vazio
 	public static boolean ficheiroVazio(String filename){
-	
 		BufferedReader br; 
 		try {
 			br= new BufferedReader(new FileReader(filename));  
@@ -300,15 +309,13 @@ public class Cliente {
 			br.close();
 			
 		} catch (FileNotFoundException e1) {
-			
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		
 		return false;
     }
     
-    /* lê login */
+    /* vai buscar o ID da sua sessão ao ficheiro id_sessao.txt */
     public static void getIDSessao() {
     	String filename="ficheiros/id_sessao.txt";
     	String line="";
@@ -340,18 +347,17 @@ public class Cliente {
   
     }
 	
-	
-    /* lê login */
-    public static void leFicheiroLogin(DataOutputStream out) {
+    /* lê de ficheiro e envia ao servidor */
+    public static void leFicheiro(String filename, DataOutputStream out) {
     	
         String line = null;
-        System.out.println("--LE FICHEIRO LOGIN --");
-        System.out.println("User e "+nomeUser);
+        System.out.println("--LE FICHEIRO --"+filename);
+
 
         try {
-            FileReader fileReader = new FileReader(filename_login);
+            FileReader fileReader = new FileReader(filename);
             BufferedReader bufferedReader = new BufferedReader(fileReader);
-            out.writeUTF("1"); // "1": opção de login no menu do servidor
+           
             while((line = bufferedReader.readLine()) != null) { // lê user e passw
                 out.writeUTF(line);
                 System.out.println("Vou enviar "+line);
@@ -360,66 +366,20 @@ public class Cliente {
                 
         }
         catch(FileNotFoundException ex) {
-            System.out.println("Unable to open file '" + filename_login + "'");                
+            System.out.println("Unable to open file '" + filename + "'");                
         }
         catch(IOException ex) {
-            System.out.println("Error reading file '" + filename_login + "'");                  
+            System.out.println("Error reading file '" + filename + "'");                  
 
         }
     	
     }
-    
-    public static void leFicheiroBackup(DataOutputStream out, Receiver MyThread) {
-    	System.out.println("--LE FICHEIRO BACKUP --");
-    	
-		        String line = null;
-		        
-		        try {
-		        	/* lê operações */
-		            FileReader fileReader = new FileReader(filename_backup);
-		            BufferedReader bufferedReader = new BufferedReader(fileReader);
-		            while((line = bufferedReader.readLine()) != null) {
-		            	//System.out.println("Vou enviar "+line);
-		            	
-		                out.writeUTF(line);
-		            }
-		            
-		            bufferedReader.close();
-		                
-		        }
-		        catch(FileNotFoundException ex) {
-		            System.out.println("Unable to open file '" + filename_backup + "'");                
-		        }
-		        catch(IOException ex) {
-		            System.out.println("Error reading file '" + filename_backup + "'");                  
-		
-		        }
-    }
-    
-    public static int countLines(String filename) throws IOException {
-        InputStream is = new BufferedInputStream(new FileInputStream(filename));
-        try {
-            byte[] c = new byte[1024];
-            int count = 0;
-            int readChars = 0;
-            boolean empty = true;
-            while ((readChars = is.read(c)) != -1) {
-                empty = false;
-                for (int i = 0; i < readChars; ++i) {
-                    if (c[i] == '\n') {
-                        ++count;
-                    }
-                }
-            }
-            return (count == 0 && !empty) ? 1 : count;
-        } finally {
-            is.close();
-        }
-    }
-    
+
+    /* Quando o Cliente perde a ligação com o Servidor
+     * registo no ficheiro Backup a última operação que ele fez
+     */
     public static void salvaFicheiroBackup() {
 
-    	//apaga backup
     	
     	File f = new File(filename_login);
 		if(!f.exists() && !f.isDirectory()) {
@@ -452,6 +412,9 @@ public class Cliente {
 		apagaConteudoFicheiro(filename_operacao); // apaga as Operações
     }
     
+    /*
+     * 
+     */
     public static void criaFicheiros(String filepath) {
     	File file = new File(filepath);
 	      
@@ -514,11 +477,7 @@ class Receiver extends Thread {
                 if (data.compareToIgnoreCase("IMPRIME")==0) {
                 	setImprime(1);
                 }
-                
-                else if (data.compareToIgnoreCase("SESSAO")==0)
-                	out.writeUTF(s_id_sessao);
                
-                
                 else if (imprime==1)
                 	System.out.println("> " + data); // print o que o serv. escreveu
                 
