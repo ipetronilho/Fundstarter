@@ -510,12 +510,12 @@ class Receiver extends Thread {
             // READ FROM SOCKET
             try {
                 String data = in.readUTF(); // lê o que foi escrito
-                System.out.println("Recebi " + data);
+                //System.out.println("Recebi " + data);
                 if (data.compareToIgnoreCase("IMPRIME")==0) {
                 	setImprime(1);
                 }
                 
-                if (data.compareToIgnoreCase("SESSAO")==0)
+                else if (data.compareToIgnoreCase("SESSAO")==0)
                 	out.writeUTF(s_id_sessao);
                
                 

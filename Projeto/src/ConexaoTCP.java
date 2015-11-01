@@ -172,8 +172,8 @@ class ConexaoTCP extends Thread {
 						                	out.writeUTF("Insira nome de Utilizador");
 						                	nomeUser = in.readUTF();
 						                	//--
-						                	out.writeUTF("ID_SESSAO");
-						                	out.writeUTF(s_id_sessao);
+						                	/*out.writeUTF("ID_SESSAO");
+						                	out.writeUTF(s_id_sessao);*/
 						                	//--
 						                	// só guarda se for a 1ª vez que está a fazer login
 						                	File f2 = new File(filename_login);
